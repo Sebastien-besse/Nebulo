@@ -37,5 +37,13 @@ L’objectif de l’application est de rendre le suivi des investissements simpl
  * Profil : données utilisateur
  * Forum : description des entreprises
  * Post : commentaire des utilisateurs sur les actions
+
+#🛠 Technologies
+* **Swift**
+* **SwiftUI**
+* **MVVM**
+
+# 🌠 Vision
+Nébulo transforme le suivi des dividendes en une expérience d’exploration spatiale, où chaque revenu passif devient une nouvelle étape dans un voyage intergalactique.
     
 
