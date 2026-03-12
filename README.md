@@ -26,5 +26,16 @@ L’objectif de l’application est de rendre le suivi des investissements simpl
   * Partage d’expériences et de stratégies entre utilisateurs
   * Échanges sur les entreprises versant des dividendes
 
-
+# 🗂 Architecture des données
+* **L’application repose sur plusieurs entités principales :**
+ * Actions : actions suivies par l’utilisateur
+ * Positions : quantité détenue pour chaque action
+ * Dividendes : historique des dividendes reçus
+ * Challenges : challenge pour motivé l'utilisateur
+ * Planètes : progression dans l’univers
+ * Énergie : points générés par les dividendes
+ * Profil : données utilisateur
+ * Forum : description des entreprises
+ * Post : commentaire des utilisateurs sur les actions
+    
 
