@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7110C4C72F682EC10040B7A1 /* CardCarousel in Frameworks */ = {isa = PBXBuildFile; productRef = 7110C4C62F682EC10040B7A1 /* CardCarousel */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		7110C3502F62CB030040B7A1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +33,22 @@
 		7110C3592F62CB030040B7A1 /* NebuloUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NebuloUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		71294E2A2F684A54006E9DDC /* Exceptions for "Nebulo" folder in "Nebulo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7110C3412F62CB020040B7A1 /* Nebulo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7110C3442F62CB020040B7A1 /* Nebulo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				71294E2A2F684A54006E9DDC /* Exceptions for "Nebulo" folder in "Nebulo" target */,
+			);
 			path = Nebulo;
 			sourceTree = "<group>";
 		};
@@ -52,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7110C4C72F682EC10040B7A1 /* CardCarousel in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +96,7 @@
 				7110C3442F62CB020040B7A1 /* Nebulo */,
 				7110C3522F62CB030040B7A1 /* NebuloTests */,
 				7110C35C2F62CB030040B7A1 /* NebuloUITests */,
+				7110C4C52F682EC10040B7A1 /* Frameworks */,
 				7110C3432F62CB020040B7A1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +109,13 @@
 				7110C3592F62CB030040B7A1 /* NebuloUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		7110C4C52F682EC10040B7A1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +138,7 @@
 			);
 			name = Nebulo;
 			packageProductDependencies = (
+				7110C4C62F682EC10040B7A1 /* CardCarousel */,
 			);
 			productName = Nebulo;
 			productReference = 7110C3422F62CB020040B7A1 /* Nebulo.app */;
@@ -195,6 +222,9 @@
 			);
 			mainGroup = 7110C3392F62CB020040B7A1;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7110C4C02F6814960040B7A1 /* XCRemoteSwiftPackageReference "CardCarousel" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7110C3432F62CB020040B7A1 /* Products */;
 			projectDirPath = "";
@@ -400,9 +430,10 @@
 				DEVELOPMENT_TEAM = XB9Z56F34J;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Nebulo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -432,9 +463,10 @@
 				DEVELOPMENT_TEAM = XB9Z56F34J;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Nebulo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -578,6 +610,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7110C4C02F6814960040B7A1 /* XCRemoteSwiftPackageReference "CardCarousel" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Pafgz/CardCarousel";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7110C4C62F682EC10040B7A1 /* CardCarousel */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7110C4C02F6814960040B7A1 /* XCRemoteSwiftPackageReference "CardCarousel" */;
+			productName = CardCarousel;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 7110C33A2F62CB020040B7A1 /* Project object */;
 }

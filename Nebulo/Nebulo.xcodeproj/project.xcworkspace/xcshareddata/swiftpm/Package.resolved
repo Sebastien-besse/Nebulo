@@ -1,0 +1,15 @@
+{
+  "originHash" : "2e50c952e0fa2a1dc914863b6267bd321ea91ff0f8af35ac41875150c8b0ee37",
+  "pins" : [
+    {
+      "identity" : "cardcarousel",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Pafgz/CardCarousel",
+      "state" : {
+        "revision" : "985a60f740aa65299fae7a75a0b0e9589e65df30",
+        "version" : "0.2.0"
+      }
+    }
+  ],
+  "version" : 3
+}

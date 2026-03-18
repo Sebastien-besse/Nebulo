@@ -1,5 +1,5 @@
 //
-//  TextField.swift
+//  CustomTextField.swift
 //  Nebulo
 //
 //  Created by apprenant152 on 13/03/2026.
@@ -9,13 +9,15 @@ import SwiftUI
 
 struct CustomTextField: View {
     @State var data: String = ""
+    let label: String
     var body: some View {
         ZStack{
             RoundedRectangle(cornerRadius: 14)
                 .fill(.beigeClear)
                 .frame(width: 315, height: 80)
             TextField(text: $data){
-                Text("Email")
+                Text(label)
+                    .textContentType(.emailAddress)
             }
             .font(.system(size: 24))
             .fontWeight(.black)
@@ -28,7 +30,7 @@ struct CustomTextField: View {
 
 #Preview {
     ZStack{
-        CustomTextField()
+        CustomTextField(label: "Email")
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(Color.accentColor)
