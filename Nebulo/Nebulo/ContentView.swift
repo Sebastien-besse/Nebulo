@@ -8,16 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject var viewModel: AuthViewModel
+
     var body: some View {
-        VStack {
+        if viewModel.isAuthenticated {
+            HomeView()
+        } else {
             AuthentificationView()
-                .onAppear {
-                    sleep(2)
-                }
         }
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(AuthViewModel())
 }

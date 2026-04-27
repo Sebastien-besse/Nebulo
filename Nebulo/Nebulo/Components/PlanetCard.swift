@@ -11,7 +11,7 @@ struct PlanetCard: View {
     let planet: Planet
     var body: some View {
         ZStack{
-            Image("earth")
+            Image("mars")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 225, height: 225)

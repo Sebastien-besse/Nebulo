@@ -19,7 +19,7 @@ struct InvestCard: View {
                     .fill(.accent)
                     .frame(width: 139, height: 50)
                     .overlay {
-                        Text("Nike")
+                        Text("Apple")
                             .font(.system(size: 20))
                             .fontWeight(.black)
                             .foregroundStyle(.beigeClear)
