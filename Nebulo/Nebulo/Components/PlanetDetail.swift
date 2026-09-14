@@ -42,7 +42,7 @@ struct PlanetDetail: View {
             planetData(x: -126, y: -184, content: planet.nickname)
             planetData(x: 70, y: 150, content: planet.description)
             planetData(x: 128, y: -112, content: "\(String(planet.degree))°C")
-            planetData(x: -143, y: 34, content: "\(String(planet.degree)) KM")
+            planetData(x: -143, y: 34, content: "\(String(planet.surface)) KM")
         }
     }
 }

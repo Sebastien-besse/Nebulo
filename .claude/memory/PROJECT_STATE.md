@@ -1,35 +1,26 @@
 ---
 name: Project State
-description: Current phase, completed work, and known issues for Nébulo
+description: Etat d'avancement de Nébulo au 14 septembre 2026
 type: project
 ---
 
-# Project State — Nébulo
+# État du projet — Nébulo
 
-## Phase
-Early development — Authentication UI built, core components scaffolded, no navigation or backend yet.
+_2026-09-14_
 
-## Done
-- Initial Xcode project setup (SwiftUI + MVVM)
-- Assets added (Logo-Nebulo, RocketConnexion, custom colors)
-- Shared UI components: BadgeCard, ButtonAction, ButtonNav, CardCarouselPost, CorporateCard, CustomTextField, InvestCard, PlanetCard, PlanetDetail, TitleCard
-- Models: Planet, Badge, Post
-- AuthentificationView (email/password form with logo and rocket button — no real auth logic yet)
-- LaunchScreen storyboard
+## Backend — complet
 
-## Remaining
-- Authentication logic (no real login/signup flow yet)
-- Main app navigation (TabView or NavigationStack post-login)
-- Dashboard / portfolio view
-- Dividend tracking (add, history, monthly/annual totals)
-- Energy system (points from dividends)
-- Galaxy/planet progression screen
-- Challenges system
-- Community forum
-- Backend / persistence (CoreData, SwiftData, or API — TBD)
-- ViewModels (none created yet)
+Auth, profil, actions, dividendes, planètes, challenges, forum. Build sans warning,
+chaque domaine testé de bout en bout contre la base réelle. 11 tables, 2 triggers,
+1 fonction stockée, 1 procédure. Détail dans `CDA/docs/API.md`.
 
-## Known Issues
-- `CustomTextField` takes `data` as a non-binding String — likely needs `@Binding` for real use
-- `ContentView` wraps `AuthentificationView` with a `sleep(2)` — likely placeholder for splash screen
-- No ViewModel layer yet despite MVVM intent
+## Application iOS — authentification seule
+
+Seule la pile Auth est branchée. `TokenStore` utilise le trousseau, avec 4 tests qui
+passent dans le simulateur. `HomeView` reste une maquette statique. Aucun
+`NavigationStack` dans le projet.
+
+## Reste à faire
+
+Voir `CDA/docs/EVOLUTIONS.md`, section « Écarts ouverts », et la checklist de
+conception `CDA/Conception/conception-nebulo.html`.

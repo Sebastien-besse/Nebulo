@@ -1,31 +1,26 @@
 ---
 name: Next Steps
-description: Prioritized roadmap for Nébulo
+description: Priorites de Nébulo au 14 septembre 2026
 type: project
 ---
 
-# Next Steps — Nébulo
+# Prochaines étapes — Nébulo
 
-## Priority 1 — Core App Shell
-- [ ] Fix `CustomTextField` to use `@Binding<String>` instead of plain `String`
-- [ ] Replace `sleep(2)` in ContentView with a proper splash/launch screen approach
-- [ ] Create main `TabView` or `NavigationStack` for post-login navigation
-- [ ] Scaffold ViewModels (at minimum `AuthViewModel`)
+_2026-09-14_
 
-## Priority 2 — Authentication
-- [ ] Implement real login/signup logic
-- [ ] Decide on backend: local (SwiftData/CoreData) vs remote API
+## P0 — dossier de conception
+- [ ] Supprimer les 2 comptes au mot de passe en clair, puis ré-exporter le dump SQL
+- [ ] Créer le MPD, livrable exigé et absent
+- [ ] Reporter les 3 associations porteuses de données sur MCD, MLD, diagramme de classes
+- [ ] Checklist complète : `Conception/conception-nebulo.html`
 
-## Priority 3 — Portfolio & Dividends
-- [ ] Build stock/action list view
-- [ ] Add dividend entry form
-- [ ] Display monthly and annual income summaries
+## P1 — brancher le front
+- [ ] `NavigationStack` et routeur, brancher les 3 boutons de `HomeView`
+- [ ] Pile Planet côté iOS sur le modèle de la pile Auth
+- [ ] Remplacer le montant en dur par `GET /dividends/summary`
+- [ ] Écrans actions, dividendes, profil, galaxie, forum
 
-## Priority 4 — Gamification
-- [ ] Energy system: calculate points from dividends
-- [ ] Galaxy view with planet cards and unlock progression
-- [ ] Challenges screen
-
-## Priority 5 — Community
-- [ ] Forum / post list view using `Post` model
-- [ ] `CorporateCard` and `CardCarouselPost` integration
+## P2 — finitions
+- [ ] Faire évoluer `users.grade` — 8 badges existent, aucune règle de passage
+- [ ] Tests côté API (`VaporTesting`), la cible est vide
+- [ ] Notification de validation de challenge

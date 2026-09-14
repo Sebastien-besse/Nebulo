@@ -1,20 +1,29 @@
 ---
 name: Commands
-description: Useful dev commands for Nébulo
+description: Commandes de developpement pour Nébulo
 type: project
 ---
 
-# Commands — Nébulo
+# Commandes — Nébulo
 
-## Build & Run
-- Open project: `open Nebulo/Nebulo.xcodeproj`
-- Build via Xcode or: `xcodebuild -project Nebulo/Nebulo.xcodeproj -scheme Nebulo -sdk iphonesimulator build`
-
-## Git
-- Repo root: `/Users/apprenant152/Documents/Project/CDA/Nebulo`
-- Current branch: main (4 feature commits + README updates)
-
-## Find Swift files
+## API
 ```bash
-find . -name "*.swift" | sort
+cd NebuloAPI
+swift build
+swift run NebuloAPI serve --hostname 127.0.0.1 --port 8080
 ```
+
+## Application iOS
+```bash
+open Nebulo/Nebulo/Nebulo.xcodeproj
+xcodebuild -project Nebulo/Nebulo/Nebulo.xcodeproj -scheme Nebulo \
+  -destination 'platform=iOS Simulator,name=iPhone 16e' test
+```
+Le scheme ne propose que des simulateurs iOS 26.2.
+
+## Base
+```bash
+/Applications/XAMPP/xamppfiles/bin/mysql -u root nebulo_db
+```
+MySQL démarre via XAMPP. Le serveur n'écoute qu'en IPv4 : viser `127.0.0.1`, jamais
+`localhost`, depuis le simulateur.
