@@ -26,7 +26,7 @@ enum APIError: Error, LocalizedError {
 final class APIService {
     static let shared = APIService()
 
-    private let baseURL = "http://localhost:8080"
+    private let baseURL = "http://127.0.0.1:8080"
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
@@ -48,6 +48,15 @@ final class APIService {
         token: String? = nil
     ) async throws -> Response {
         let request = try buildRequest(endpoint: endpoint, method: "POST", body: body, token: token)
+        return try await perform(request)
+    }
+
+    func put<Response: Decodable, Body: Encodable>(
+        endpoint: String,
+        body: Body,
+        token: String
+    ) async throws -> Response {
+        let request = try buildRequest(endpoint: endpoint, method: "PUT", body: body, token: token)
         return try await perform(request)
     }
 

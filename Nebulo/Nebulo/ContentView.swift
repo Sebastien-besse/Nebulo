@@ -12,7 +12,11 @@ struct ContentView: View {
 
     var body: some View {
         if viewModel.isAuthenticated {
-            HomeView()
+            // La pile est posée ici plutôt que dans HomeView : elle doit
+            // survivre à la navigation, et disparaître à la déconnexion.
+            NavigationStack {
+                HomeView()
+            }
         } else {
             AuthentificationView()
         }

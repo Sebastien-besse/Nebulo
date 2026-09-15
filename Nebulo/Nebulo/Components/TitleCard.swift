@@ -10,14 +10,13 @@ import SwiftUI
 struct TitleCard: View {
     let title: String
     var body: some View {
-        ZStack{
-            RoundedRectangle(cornerRadius: 14)
-                .fill(.beigeClear)
-                .frame(width: 197, height: 66)
+        
+        VStack{
+    
             Text(title)
-                .font(.system(size: 20))
+                .font(.system(size: 32))
                 .fontWeight(.black)
-                .foregroundStyle(.blueCustom)
+                .foregroundStyle(.yellowCustom)
         }
     }
 }

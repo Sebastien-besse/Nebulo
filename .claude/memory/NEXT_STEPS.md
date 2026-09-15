@@ -6,7 +6,7 @@ type: project
 
 # Prochaines étapes — Nébulo
 
-_2026-09-14_
+_2026-09-15_
 
 ## P0 — dossier de conception
 - [ ] Supprimer les 2 comptes au mot de passe en clair, puis ré-exporter le dump SQL
@@ -15,10 +15,11 @@ _2026-09-14_
 - [ ] Checklist complète : `Conception/conception-nebulo.html`
 
 ## P1 — brancher le front
-- [ ] `NavigationStack` et routeur, brancher les 3 boutons de `HomeView`
-- [ ] Pile Planet côté iOS sur le modèle de la pile Auth
-- [ ] Remplacer le montant en dur par `GET /dividends/summary`
-- [ ] Écrans actions, dividendes, profil, galaxie, forum
+- [x] `NavigationStack` et routeur (`HomeRoute`)
+- [x] Écran Profil, branché sur `/users/me` et `/planets`
+- [ ] Remplacer le montant en dur de `HomeView` par `GET /dividends/summary`
+- [ ] Brancher le bloc Challenges sur `GET /challenges/current`
+- [ ] Écrans actions, dividendes, galaxie, forum
 
 ## P2 — finitions
 - [ ] Faire évoluer `users.grade` — 8 badges existent, aucune règle de passage

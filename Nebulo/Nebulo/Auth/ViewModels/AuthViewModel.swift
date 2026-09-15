@@ -17,8 +17,10 @@ final class AuthViewModel: ObservableObject {
 
     private let service: AuthServiceProtocol
 
-    init(service: AuthServiceProtocol = AuthService()) {
-        self.service = service
+    // La valeur par défaut est construite dans le corps : évaluée comme
+    // argument par défaut, elle le serait hors de l'acteur principal.
+    init(service: AuthServiceProtocol? = nil) {
+        self.service = service ?? AuthService()
         self.isAuthenticated = TokenStore.shared.token != nil
     }
 

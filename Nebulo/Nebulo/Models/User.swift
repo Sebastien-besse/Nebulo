@@ -16,3 +16,14 @@ struct User {
     let grade: String
     let dateOfBirth: Date
 }
+
+/// Utilisateur d'exemple pour les previews.
+let fakeUser = User(
+    id: UUID(),
+    firstname: "Sébastien",
+    lastname: "Besse",
+    email: "sebastien@gmail.com",
+    energy: 80,
+    grade: "Explorateur",
+    dateOfBirth: Date(timeIntervalSince1970: 642_000_000)
+)
