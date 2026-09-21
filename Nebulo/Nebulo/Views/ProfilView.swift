@@ -10,7 +10,9 @@ import SwiftUI
 struct ProfilView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel: ProfileViewModel
-    @Environment(\.dismiss) private var dismiss
+    /// La fiche d'une planète se présente par-dessus le profil plutôt que
+    /// de s'y empiler : on en revient, on n'y progresse pas.
+    @State private var selectedPlanet: Planet?
 
     /// Le ViewModel est injecté, sans valeur par défaut : celle-ci serait
     /// évaluée hors de l'acteur principal. Les appelants le construisent donc
@@ -28,7 +30,7 @@ struct ProfilView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
-                    header
+                    HeaderBar(title: "Profil")
                     identity
                     grades
                     planets
@@ -67,25 +69,15 @@ struct ProfilView: View {
         .onChange(of: viewModel.sessionExpired) { _, expired in
             if expired { authViewModel.logout() }
         }
-    }
-
-    // MARK: En-tête
-
-    private var header: some View {
-        ZStack {
-            HStack {
-                Button(action: { dismiss() }) {
-                    Image("IconBack")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 54, height: 30)
-                }
-                Spacer()
-            }
-            TitleCard(title: "Profil")
+        // La planète est déjà en mémoire : l'écran de détail ne lit rien au
+        // serveur, il n'y a donc rien à recharger.
+        .fullScreenCover(item: $selectedPlanet) { planet in
+            PlanetDetailView(
+                planets: viewModel.sortedPlanets,
+                selected: planet,
+                energy: viewModel.user?.energy ?? 0
+            )
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
     }
 
     // MARK: Identité
@@ -188,7 +180,14 @@ struct ProfilView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 3) {
                         ForEach(viewModel.sortedPlanets) { planet in
+                            // Le geste est posé ici plutôt que dans le
+                            // composant : `PlanetCard` sert aussi ailleurs, où
+                            // rien ne doit s'ouvrir.
                             PlanetCard(planet: planet, size: 185)
+                                .contentShape(Rectangle())
+                                // Les planètes verrouillées s'ouvrent aussi :
+                                // leur fiche dit ce qu'il manque pour y aller.
+                                .onTapGesture { selectedPlanet = planet }
                         }
                     }
                     .padding(.horizontal, 20)

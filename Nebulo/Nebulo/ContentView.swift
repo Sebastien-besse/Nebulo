@@ -15,7 +15,7 @@ struct ContentView: View {
             // La pile est posée ici plutôt que dans HomeView : elle doit
             // survivre à la navigation, et disparaître à la déconnexion.
             NavigationStack {
-                HomeView()
+                HomeView(viewModel: HomeViewModel())
             }
         } else {
             AuthentificationView()

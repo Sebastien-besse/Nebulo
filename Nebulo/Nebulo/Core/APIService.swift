@@ -65,6 +65,38 @@ final class APIService {
         return try await perform(request)
     }
 
+    /// Certaines lectures répondent `204 No Content` quand il n'y a rien à
+    /// lire — le challenge courant, une fois le pool épuisé. Le corps est alors
+    /// vide et le décodeur n'a rien à se mettre sous la dent : d'où le nil.
+    func getOptional<Response: Decodable>(endpoint: String, token: String) async throws -> Response? {
+        let request = try buildRequest(endpoint: endpoint, method: "GET", body: Optional<String>.none, token: token)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard http.statusCode != 204 else { return nil }
+
+        guard (200...299).contains(http.statusCode) else {
+            let message = (try? decoder.decode(APIErrorResponse.self, from: data))?.reason
+                ?? "Erreur \(http.statusCode)"
+            throw APIError.httpError(statusCode: http.statusCode, message: message)
+        }
+
+        do {
+            return try decoder.decode(Response.self, from: data)
+        } catch {
+            throw APIError.decodingError
+        }
+    }
+
+    /// Certaines suppressions répondent avec la ressource remise à jour —
+    /// retirer un vote renvoie le post recompté — d'où le type de retour.
+    func delete<Response: Decodable>(endpoint: String, token: String) async throws -> Response {
+        let request = try buildRequest(endpoint: endpoint, method: "DELETE", body: Optional<String>.none, token: token)
+        return try await perform(request)
+    }
+
     private func buildRequest<Body: Encodable>(
         endpoint: String,
         method: String,

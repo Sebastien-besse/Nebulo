@@ -16,7 +16,9 @@ struct TitleCard: View {
             Text(title)
                 .font(.system(size: 32))
                 .fontWeight(.black)
-                .foregroundStyle(.yellowCustom)
+                // Crème et non jaune : c'est la couleur des titres dans toutes
+                // les maquettes, Profil et Forum compris.
+                .foregroundStyle(.beigeClear)
         }
     }
 }
