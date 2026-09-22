@@ -24,7 +24,7 @@ struct RegisterView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(spacing: 30) {
                 header
                 formFields

@@ -87,7 +87,7 @@ struct ForumView: View {
             emptyState
             Spacer()
         } else {
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 // Le conteneur laisse les verres voisins se fondre entre eux
                 // quand ils se rapprochent. Son espacement suit celui de la
                 // pile, 34 dans la maquette.

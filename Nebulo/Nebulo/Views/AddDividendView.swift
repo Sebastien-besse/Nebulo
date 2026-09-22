@@ -30,7 +30,7 @@ struct AddDividendView: View {
         ZStack {
             Color.accentColor.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     // Pas de bouton à droite : rien à ajouter depuis un écran
                     // qui sert déjà à ajouter.

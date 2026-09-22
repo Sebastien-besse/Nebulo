@@ -46,16 +46,20 @@ struct HeaderBar: View {
 
     /// Le rond crème est dessiné ici : l'asset ne porte que le signe, ce qui
     /// permet de le réutiliser ailleurs sans son fond.
+    ///
+    /// Le node pose 44 points, avec un signe de 24. C'est trop lourd à côté de
+    /// la fusée de retour, qui n'en fait que 30 de haut : le bouton tirait
+    /// l'œil plus que le titre. Ramené à 38, la proportion du signe conservée.
     private func trailingButton(icon: String) -> some View {
         Button(action: trailingAction) {
             Circle()
                 .fill(.beigeClear)
-                .frame(width: 44, height: 44)
+                .frame(width: 38, height: 38)
                 .overlay {
                     Image(icon)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 24, height: 24)
+                        .frame(width: 20, height: 20)
                 }
         }
     }

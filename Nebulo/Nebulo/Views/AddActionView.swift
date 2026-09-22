@@ -28,7 +28,7 @@ struct AddActionView: View {
         ZStack {
             Color.accentColor.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     // Pas de bouton à droite : la maquette n'en montre aucun.
                     HeaderBar(title: "Action")

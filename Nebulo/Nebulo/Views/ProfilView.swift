@@ -28,9 +28,14 @@ struct ProfilView: View {
         ZStack {
             Color.accentColor.ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 28) {
                     HeaderBar(title: "Profil")
+                    // En tête d'écran : où on en est, avant le détail du compte.
+                    if let grade = viewModel.grade {
+                        GradeProgress(grade: grade)
+                            .padding(.horizontal, 20)
+                    }
                     identity
                     grades
                     planets
@@ -93,7 +98,7 @@ struct ProfilView: View {
                     editableField(user.firstname, field: .firstname)
                     editableField(user.lastname, field: .lastname)
                 }
-                editableField(user.email, field: .email, underlined: true)
+                editableField(user.email, field: .email)
                 // La vraie valeur n'est jamais connue du client : on affiche un
                 // masque de longueur fixe, qui ne renseigne pas sur le mot de passe.
                 editableField("•••••••••••••••••••••••", field: .password)
@@ -111,11 +116,11 @@ struct ProfilView: View {
 
     /// Toucher un champ ouvre sa modification. Le libellé sert d'indication
     /// d'accessibilité : rien à l'écran ne dit qu'un champ est modifiable.
-    private func editableField(_ value: String, field: ProfileField, underlined: Bool = false) -> some View {
+    private func editableField(_ value: String, field: ProfileField) -> some View {
         Button {
             viewModel.startEditing(field)
         } label: {
-            fieldBox(value, underlined: underlined)
+            fieldBox(value)
         }
         .accessibilityLabel(
             field.isSecure
@@ -124,7 +129,7 @@ struct ProfilView: View {
         )
     }
 
-    private func fieldBox(_ value: String, underlined: Bool = false) -> some View {
+    private func fieldBox(_ value: String) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 14)
                 .fill(.beigeClear)
@@ -133,7 +138,6 @@ struct ProfilView: View {
                 .font(.system(size: 24))
                 .fontWeight(.black)
                 .foregroundStyle(.accent.opacity(0.47))
-                .underline(underlined)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .padding(.horizontal, 14)
@@ -148,7 +152,11 @@ struct ProfilView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(GradeCatalog.all) { badge in
-                        BadgeCard(badge: badge, isCurrent: badge == viewModel.currentGrade)
+                        BadgeCard(
+                            badge: badge,
+                            isCurrent: badge == viewModel.currentGrade,
+                            isLocked: viewModel.isLocked(badge)
+                        )
                     }
                 }
                 .padding(.horizontal, 20)
@@ -235,6 +243,7 @@ struct ProfilView: View {
     let viewModel = ProfileViewModel()
     viewModel.user = fakeUser
     viewModel.planets = fakePlanets
+    viewModel.grade = fakeUserGrade
     viewModel.hasLoaded = true
     viewModel.hasAttemptedLoad = true
 

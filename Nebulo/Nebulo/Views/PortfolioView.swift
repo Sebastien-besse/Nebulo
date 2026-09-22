@@ -91,7 +91,7 @@ struct PortfolioView: View {
             emptyState
             Spacer()
         } else {
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 // Le conteneur laisse les verres voisins se fondre entre eux
                 // quand ils se rapprochent, au lieu de se superposer chacun
                 // dans son coin. Son espacement doit suivre celui de la pile.

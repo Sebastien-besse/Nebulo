@@ -31,6 +31,9 @@ enum ProfileField: String, Identifiable {
 final class ProfileViewModel: ObservableObject {
     @Published var user: User? = nil
     @Published var planets: [Planet] = []
+    /// Le grade courant, l'XP accumulée et le palier suivant. Nil tant que le
+    /// serveur n'a pas répondu.
+    @Published var grade: UserGrade? = nil
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     /// Vrai une fois que le serveur a répondu. Sert à distinguer « pas encore
@@ -72,6 +75,19 @@ final class ProfileViewModel: ObservableObject {
     var currentGrade: Badge? {
         guard let grade = user?.grade.lowercased() else { return nil }
         return GradeCatalog.all.first { $0.name.lowercased() == grade }
+    }
+
+    /// Un grade est verrouillé tant qu'il se situe après le grade courant dans
+    /// le catalogue. Le suivant reste donc visible, cadenassé : le chemin se
+    /// lit d'avance, il n'y a rien à découvrir par surprise.
+    ///
+    /// Sans grade courant — le serveur n'a pas encore répondu, ou n'a attribué
+    /// aucun grade — tout est verrouillé : rien n'est acquis.
+    func isLocked(_ badge: Badge) -> Bool {
+        guard let currentIndex = currentGrade.flatMap({ GradeCatalog.all.firstIndex(of: $0) }),
+              let index = GradeCatalog.all.firstIndex(of: badge)
+        else { return true }
+        return index > currentIndex
     }
 
     /// Ouvre la modification d'un champ, pré-remplie avec sa valeur actuelle.
@@ -160,9 +176,10 @@ final class ProfileViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         do {
-            let (user, planets) = try await service.loadProfile(token: token)
+            let (user, planets, grade) = try await service.loadProfile(token: token)
             self.user = user
             self.planets = planets
+            self.grade = grade
             self.hasLoaded = true
         } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
             sessionExpired = true

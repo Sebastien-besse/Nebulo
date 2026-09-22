@@ -42,6 +42,14 @@ struct Post: Identifiable, Equatable {
     let myVote: VoteType?
 
     let responseCount: Int
+
+    /// La température du message, à la manière de Dealabs : les votes chauds
+    /// moins les froids. Elle peut descendre sous zéro — c'est le signe qu'une
+    /// action ne convainc pas, et c'est une information en soi.
+    ///
+    /// Calculée ici plutôt que côté serveur : les deux décomptes arrivent déjà
+    /// dans le DTO, une colonne de plus serait une vérité en double.
+    var temperature: Int { hotCount - coldCount }
 }
 
 /// Fil d'exemple pour les previews.
@@ -60,7 +68,7 @@ let fakePosts: [Post] = [
         dateOfCreated: Date(timeIntervalSince1970: 1_771_286_400),
         authorId: UUID(), authorFirstname: "Mathis", authorAge: 28,
         companyId: UUID(), companyName: "Tesla",
-        hotCount: 4, coldCount: 9, myVote: .cold, responseCount: 7
+        hotCount: 4, coldCount: 17, myVote: .cold, responseCount: 7
     ),
     Post(
         id: UUID(),
