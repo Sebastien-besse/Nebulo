@@ -37,6 +37,17 @@ struct HomeView: View {
     /// pas figé si on s'y attarde.
     private static let starfieldTurn: Double = 240
 
+    /// Durée du décollage, en secondes. Elle était de 1,3 : la fusée sortait
+    /// du cadre avant qu'on ait compris ce qui se passait. Doublée, la poussée
+    /// se regarde — c'est le seul moment de l'application où il y a quelque
+    /// chose à regarder.
+    private static let launchDuration: Double = 2.6
+
+    /// Quand la célébration prend le relais. Un peu avant la fin du vol : le
+    /// voile monte pendant que la fusée achève de sortir, plutôt qu'après un
+    /// temps mort. Toujours inférieur à `launchDuration`.
+    private static let celebrationDelay: Int = 2_400
+
     private static let starfieldSize = CGSize(width: 334.25, height: 539.76)
 
     /// Nombre d'exemplaires du champ d'étoiles répartis sur la couronne. À ce
@@ -152,7 +163,7 @@ struct HomeView: View {
         }
         isLaunching = true
         Task {
-            try? await Task.sleep(for: .milliseconds(1300))
+            try? await Task.sleep(for: .milliseconds(Self.celebrationDelay))
             showCelebration = true
         }
     }
@@ -250,20 +261,50 @@ struct HomeView: View {
         )
     }
 
+    /// La fusée du décollage. Elle ne paraît qu'au franchissement d'un seuil,
+    /// le temps du vol, puis rend sa place à la jauge.
+    ///
+    /// Asset distinct du vaisseau-jauge : celui-ci est une silhouette à
+    /// remplir, muette une fois pleine. Celle-là a sa flamme allumée, et ne
+    /// sert qu'à ça.
+    private var launchRocket: some View {
+        Image("rocket_new_planet")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 420.96, height: 420.96)
+            .accessibilityHidden(true)
+    }
+
     /// Le vaisseau survole la planète la plus lointaine déjà atteinte : la
     /// Terre au départ, Neptune au bout du voyage.
     private var spaceship: some View {
         ZStack {
-            energyGauge
-                .offset(y: -380)
-                // La montée : lente au départ, puis emballée, comme une poussée
-                // qui vainc l'inertie. 1500 points suffisent à sortir du cadre.
-                .offset(y: isLaunching ? -1500 : 0)
-                .animation(
-                    reduceMotion ? nil : .easeIn(duration: 1.3),
-                    value: isLaunching
-                )
-                .allowsHitTesting(false)
+            // Les deux silhouettes restent montées ensemble : les échanger
+            // dans un `if` changerait l'identité de la vue au moment même du
+            // décollage, et la fusée serait insérée déjà sortie du cadre, sans
+            // montée. Elles se relaient donc en fondu.
+            ZStack {
+                energyGauge
+                    .opacity(isLaunching ? 0 : 1)
+                launchRocket
+                    .opacity(isLaunching ? 1 : 0)
+            }
+            // Le relais est bref, et posé ici pour ne pas hériter de la durée
+            // du vol : étalé sur 2,6 secondes, on verrait la jauge s'attarder
+            // pendant la moitié de la montée.
+            .animation(
+                reduceMotion ? nil : .easeOut(duration: 0.25),
+                value: isLaunching
+            )
+            .offset(y: -380)
+            // La montée : lente au départ, puis emballée, comme une poussée
+            // qui vainc l'inertie. 1500 points suffisent à sortir du cadre.
+            .offset(y: isLaunching ? -1500 : 0)
+            .animation(
+                reduceMotion ? nil : .easeIn(duration: Self.launchDuration),
+                value: isLaunching
+            )
+            .allowsHitTesting(false)
 
             Image(viewModel.currentPlanetImage)
                 .resizable()

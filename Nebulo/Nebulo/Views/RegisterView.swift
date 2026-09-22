@@ -69,7 +69,7 @@ struct RegisterView: View {
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.words)
 
-            CustomTextField(data: $email, label: "Email", widthTextField: 315)
+            CustomTextField(data: $email.lowercasedEmail, label: "Email", widthTextField: 315)
                 .keyboardType(.emailAddress)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)

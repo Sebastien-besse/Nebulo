@@ -25,6 +25,10 @@ final class AuthViewModel: ObservableObject {
     }
 
     func login(email: String, password: String) async {
+        // La casse et les espaces de bordure ne désignent pas un autre compte :
+        // l'adresse est ramenée à sa forme unique avant de partir.
+        let email = email.normalizedEmail
+
         guard !email.isEmpty, !password.isEmpty else {
             errorMessage = "Veuillez remplir tous les champs"
             return
@@ -45,6 +49,8 @@ final class AuthViewModel: ObservableObject {
     }
 
     func register(firstname: String, lastname: String, email: String, password: String, dateOfBirth: Date) async {
+        let email = email.normalizedEmail
+
         guard !firstname.isEmpty, !lastname.isEmpty, !email.isEmpty, !password.isEmpty else {
             errorMessage = "Veuillez remplir tous les champs"
             return

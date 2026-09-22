@@ -35,7 +35,7 @@ struct AuthentificationView: View {
 
     var textFieldGroup: some View {
         VStack(alignment: .leading, spacing: 25) {
-            CustomTextField(data: $email, label: "Email", widthTextField: 315)
+            CustomTextField(data: $email.lowercasedEmail, label: "Email", widthTextField: 315)
                 .keyboardType(.emailAddress)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)

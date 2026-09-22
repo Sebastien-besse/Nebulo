@@ -48,7 +48,12 @@ struct ProfilView: View {
             if let field = viewModel.editingField {
                 EditFieldDialog(
                     title: field.title,
-                    value: $viewModel.draft,
+                    // L'adresse s'écrit en minuscules sous les doigts :
+                    // l'autocapitalisation du clavier ne couvre ni le collage,
+                    // ni un clavier matériel.
+                    value: field == .email
+                        ? $viewModel.draft.lowercasedEmail
+                        : $viewModel.draft,
                     errorMessage: viewModel.errorMessage,
                     isSaving: viewModel.isSaving,
                     keyboard: field == .email ? .emailAddress : .default,

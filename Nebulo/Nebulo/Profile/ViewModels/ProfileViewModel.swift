@@ -115,9 +115,14 @@ final class ProfileViewModel: ObservableObject {
     func saveEditing() async {
         guard let field = editingField, let user else { return }
         // Un mot de passe peut légitimement contenir des espaces en bordure.
-        let value = field == .password
-            ? draft
-            : draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Une adresse, elle, est en plus ramenée en minuscules : c'est la
+        // forme sous laquelle le serveur la stocke, et donc la relit.
+        let value: String
+        switch field {
+        case .password: value = draft
+        case .email:    value = draft.normalizedEmail
+        default:        value = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
 
         guard !value.isEmpty else {
             errorMessage = "\(field.title) ne peut pas être vide"
