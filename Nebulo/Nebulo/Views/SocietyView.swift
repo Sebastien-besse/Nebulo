@@ -11,6 +11,8 @@ import CardCarousel
 struct SocietyView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel: SocietyViewModel
+    /// Le message dont on déroule le fil. Nil tant qu'aucun n'est ouvert.
+    @State private var openedPost: Post?
 
     /// Le ViewModel est injecté, sans valeur par défaut : celle-ci serait
     /// évaluée hors de l'acteur principal. C'est aussi ce qui permet aux
@@ -41,6 +43,14 @@ struct SocietyView: View {
         // d'afficher une erreur que l'utilisateur ne peut pas résoudre.
         .onChange(of: viewModel.sessionExpired) { _, expired in
             if expired { authViewModel.logout() }
+        }
+        .navigationDestination(item: $openedPost) { post in
+            // Le carrousel se recharge avant de réapparaître : le message
+            // supprimé y figure encore, et l'index actif peut désigner une
+            // carte qui n'existe plus.
+            PostDetailView(viewModel: PostDetailViewModel(post: post)) {
+                Task { await viewModel.load() }
+            }
         }
     }
 
@@ -139,6 +149,12 @@ struct SocietyView: View {
             ) { post in
                 CardCarouselPost(post: post)
                     .opacity(viewModel.isActive(post) ? 1 : 0.24)
+                    // Seule la carte du centre ouvre son fil : sur les
+                    // voisines, le toucher appartient au carrousel, qui s'en
+                    // sert pour les amener au centre.
+                    .onTapGesture {
+                        if viewModel.isActive(post) { openedPost = post }
+                    }
             }
             .frame(height: 360)
             .padding(.top, 29)

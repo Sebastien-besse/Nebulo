@@ -60,6 +60,10 @@ final class SocietyViewModel: ObservableObject {
             let (company, posts) = try await service.loadSociety(companyId: companyId, token: token)
             self.company = company
             self.posts = posts
+            // Un rechargement peut rendre le fil plus court qu'avant — un
+            // message supprimé depuis son écran de réponses. L'index resterait
+            // alors sur une carte qui n'existe plus.
+            self.activeIndex = min(activeIndex, max(0, posts.count - 1))
             self.hasLoaded = true
         } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
             sessionExpired = true

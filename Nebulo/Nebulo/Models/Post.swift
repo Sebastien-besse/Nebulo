@@ -20,8 +20,9 @@ enum VoteType: String, Codable {
 /// L'identifiant vient du serveur : le générer ici le perdrait, et voter
 /// deviendrait impossible faute de savoir sur quel post porter le vote.
 /// `Equatable` est exigé par le carrousel de l'écran Société, qui compare
-/// les éléments pour savoir lequel est au centre.
-struct Post: Identifiable, Equatable {
+/// les éléments pour savoir lequel est au centre ; `Hashable` par la pile de
+/// navigation, qui transporte le message ouvert jusqu'à son fil de réponses.
+struct Post: Identifiable, Equatable, Hashable {
     let id: UUID
     let content: String
     let dateOfCreated: Date

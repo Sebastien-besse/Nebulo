@@ -13,8 +13,13 @@ final class ForumViewModel: ObservableObject {
     /// Le fil arrive déjà antéchronologique du serveur : le réordonner ici
     /// ferait diverger l'écran de ce que l'API considère comme l'ordre.
     @Published var posts: [Post] = []
-    /// Identifiant du lecteur, pour éteindre les votes sur ses propres posts.
+    /// Identifiant du lecteur : il éteint les votes sur ses propres posts, et
+    /// c'est sur eux seuls qu'apparaît la corbeille.
     @Published var viewerId: UUID? = nil
+    /// Le message dont la suppression attend confirmation. Nil le reste du
+    /// temps : la suppression est définitive, elle ne part pas sur un toucher.
+    @Published var pendingDeletion: Post? = nil
+    @Published var isDeleting: Bool = false
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     /// Vrai une fois que le serveur a répondu. Sert à distinguer « forum
@@ -40,6 +45,14 @@ final class ForumViewModel: ObservableObject {
     /// Nul ne vote sur son propre message, l'API renvoie 403.
     func canVote(on post: Post) -> Bool {
         post.authorId != viewerId
+    }
+
+    /// L'inverse du vote : le forum est modéré par ses auteurs, chacun ne
+    /// retire que ce qu'il a écrit. Faux tant que le lecteur est inconnu —
+    /// mieux vaut une corbeille qui manque qu'une qui trompe.
+    func canDelete(_ post: Post) -> Bool {
+        guard let viewerId else { return false }
+        return post.authorId == viewerId
     }
 
     func load() async {
@@ -86,6 +99,42 @@ final class ForumViewModel: ObservableObject {
             errorMessage = error.errorDescription
         } catch {
             errorMessage = "Une erreur est survenue"
+        }
+    }
+
+    /// Retire le message dont la suppression a été confirmée.
+    ///
+    /// Ses réponses partent avec lui : la clé étrangère de `responses` est en
+    /// CASCADE. Rien ne se modifie dans ce forum — la suppression est le seul
+    /// retour en arrière, et elle est définitive.
+    func confirmDeletion() async {
+        guard let post = pendingDeletion else { return }
+        guard let token = TokenStore.shared.token else {
+            sessionExpired = true
+            return
+        }
+
+        isDeleting = true
+        errorMessage = nil
+        defer { isDeleting = false }
+
+        do {
+            try await service.deletePost(id: post.id, token: token)
+            posts.removeAll { $0.id == post.id }
+            pendingDeletion = nil
+        } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
+            sessionExpired = true
+        } catch APIError.httpError(let statusCode, _) where statusCode == 404 {
+            // Déjà supprimé ailleurs : le retirer de l'écran plutôt que
+            // d'annoncer une erreur pour un fil désormais juste.
+            posts.removeAll { $0.id == post.id }
+            pendingDeletion = nil
+        } catch let error as APIError {
+            errorMessage = error.errorDescription
+            pendingDeletion = nil
+        } catch {
+            errorMessage = "Une erreur est survenue"
+            pendingDeletion = nil
         }
     }
 }

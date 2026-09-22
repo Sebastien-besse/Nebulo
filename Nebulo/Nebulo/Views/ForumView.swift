@@ -10,6 +10,9 @@ import SwiftUI
 /// Les destinations accessibles depuis le forum.
 enum ForumRoute: Hashable {
     case society(companyId: UUID)
+    /// Le fil de réponses d'un message. Le post est transporté entier :
+    /// l'écran l'affiche en tête, et le recharger ne dirait rien de neuf.
+    case thread(Post)
     case addPost
 }
 
@@ -38,6 +41,23 @@ struct ForumView: View {
                 content
             }
         }
+        // La suppression est définitive : elle passe par une confirmation,
+        // posée par-dessus l'écran plutôt que par une alerte système, qui ne
+        // se style pas.
+        .overlay {
+            if let pending = viewModel.pendingDeletion {
+                ConfirmDialog(
+                    title: "Supprimer le message ?",
+                    message: "Il disparaîtra du forum avec toutes ses réponses. C'est définitif.",
+                    isWorking: viewModel.isDeleting,
+                    onCancel: { viewModel.pendingDeletion = nil },
+                    onConfirm: { Task { await viewModel.confirmDeletion() } }
+                )
+                .transition(.opacity)
+                .id(pending.id)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.pendingDeletion)
         // L'écran a son propre bouton retour, dessiné dans l'en-tête.
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
@@ -55,6 +75,12 @@ struct ForumView: View {
             switch destination {
             case .society(let companyId):
                 SocietyView(viewModel: SocietyViewModel(companyId: companyId))
+            case .thread(let post):
+                // Le fil se recharge avant de réapparaître : le message
+                // supprimé y figure encore.
+                PostDetailView(viewModel: PostDetailViewModel(post: post)) {
+                    Task { await viewModel.load() }
+                }
             case .addPost:
                 // Le fil se recharge avant de réapparaître : le nouveau
                 // message doit être en tête au retour.
@@ -97,13 +123,21 @@ struct ForumView: View {
                             CorporateCard(
                                 post: post,
                                 canVote: viewModel.canVote(on: post),
+                                canDelete: viewModel.canDelete(post),
                                 onVote: { value in
                                     Task { await viewModel.vote(value, on: post) }
                                 },
-                                // Un message sans entreprise n'ouvre rien :
-                                // la fiche société n'existe pas pour lui.
-                                onOpen: post.companyId.map { id in
-                                    { route = .society(companyId: id) }
+                                onDelete: { viewModel.pendingDeletion = post },
+                                // La fiche société n'existe pas pour un
+                                // message sans entreprise : son toucher
+                                // déroule alors son fil, qui serait sinon
+                                // hors d'atteinte.
+                                onOpen: {
+                                    if let id = post.companyId {
+                                        route = .society(companyId: id)
+                                    } else {
+                                        route = .thread(post)
+                                    }
                                 }
                             )
                         }

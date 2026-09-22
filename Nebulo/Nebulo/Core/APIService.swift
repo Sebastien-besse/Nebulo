@@ -97,6 +97,24 @@ final class APIService {
         return try await perform(request)
     }
 
+    /// Certaines suppressions ne répondent rien — `204 No Content`, le corps
+    /// vide — et il n'y a alors aucun type à décoder : supprimer sa réponse
+    /// au forum, par exemple. L'autre `delete` exigerait qu'on invente un
+    /// `Decodable` pour accueillir du néant.
+    func deleteNoContent(endpoint: String, token: String) async throws {
+        let request = try buildRequest(endpoint: endpoint, method: "DELETE", body: Optional<String>.none, token: token)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+        guard (200...299).contains(http.statusCode) else {
+            let message = (try? decoder.decode(APIErrorResponse.self, from: data))?.reason
+                ?? "Erreur \(http.statusCode)"
+            throw APIError.httpError(statusCode: http.statusCode, message: message)
+        }
+    }
+
     private func buildRequest<Body: Encodable>(
         endpoint: String,
         method: String,

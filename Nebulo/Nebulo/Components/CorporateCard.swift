@@ -8,12 +8,17 @@
 import SwiftUI
 
 /// Une ligne du forum : l'entreprise dont parle le message, sa date, et les
-/// deux votes chaud et froid.
+/// deux votes chaud et froid. Sur ses propres messages, une corbeille remplace
+/// les votes, qui s'éteignent.
 struct CorporateCard: View {
     let post: Post
     /// Faux sur ses propres messages : l'API refuse qu'on s'auto-vote.
     var canVote: Bool = true
+    /// Vrai sur ses propres messages, et sur eux seuls : le forum est modéré
+    /// par ses auteurs.
+    var canDelete: Bool = false
     var onVote: (VoteType) -> Void = { _ in }
+    var onDelete: () -> Void = {}
     /// Toucher la carte ouvre l'entreprise. Inerte sur un message qui n'en
     /// vise aucune : il n'y a alors rien à ouvrir.
     var onOpen: (() -> Void)? = nil
@@ -21,6 +26,12 @@ struct CorporateCard: View {
     var body: some View {
         VStack(spacing: 30) {
             HStack(alignment: .bottom) {
+                // La maquette laisse cette moitié de ligne vide. La corbeille
+                // s'y installe plutôt que près de la pastille de vote, dont
+                // elle deviendrait le troisième bouton.
+                if canDelete {
+                    deleteButton
+                }
                 Spacer()
                 dateBadge
             }
@@ -44,6 +55,22 @@ struct CorporateCard: View {
         // toucher avant que celui-ci n'atteigne la carte.
         .contentShape(Rectangle())
         .onTapGesture { onOpen?() }
+    }
+
+    /// Le glyphe est celui du système : l'application n'a pas d'asset de
+    /// corbeille, et en dessiner un pour une seule commande serait du poids
+    /// pour rien. Il est discret à dessein — c'est une issue de secours, pas
+    /// une action courante.
+    private var deleteButton: some View {
+        Button(action: onDelete) {
+            Image(systemName: "trash")
+                .font(.system(size: 15, weight: .black))
+                .foregroundStyle(.beigeClear.opacity(0.55))
+                // La cible du doigt dépasse le glyphe, qui est petit.
+                .frame(width: 34, height: 30)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("Supprimer mon message")
     }
 
     /// La pastille épouse sa date au lieu de l'inverse.
@@ -168,8 +195,9 @@ struct CorporateCard: View {
         VStack(spacing: 34) {
             CorporateCard(post: fakePosts[0])
             CorporateCard(post: fakePosts[1])
-            // Son propre message : les votes sont éteints.
-            CorporateCard(post: fakePosts.last!, canVote: false)
+            // Son propre message : les votes sont éteints, la corbeille
+            // apparaît.
+            CorporateCard(post: fakePosts.last!, canVote: false, canDelete: true)
         }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)

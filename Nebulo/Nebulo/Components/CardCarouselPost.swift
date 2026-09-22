@@ -8,8 +8,8 @@
 import SwiftUI
 import CardCarousel
 
-/// Un message dans le carrousel de l'écran Société : l'auteur, son âge, puis
-/// le contenu.
+/// Un message dans le carrousel de l'écran Société : l'auteur, son âge, le
+/// contenu, et le nombre de réponses qu'il a reçues.
 struct CardCarouselPost: View {
     let post: Post
 
@@ -26,14 +26,45 @@ struct CardCarouselPost: View {
                     .lineHeight(.leading(increase: 6))
                     // Le bloc de texte fait 252 points dans la maquette, soit
                     // douze lignes. Au-delà, le message déborderait de la carte,
-                    // dont la hauteur est fixe.
-                    .lineLimit(12)
+                    // dont la hauteur est fixe. La dernière est rendue au
+                    // décompte, posé en pied.
+                    .lineLimit(11)
             }
             .font(.system(size: 14))
             .foregroundStyle(.accent)
             .frame(width: 227, alignment: .leading)
             .padding(.leading, 11)
             .padding(.top, 25)
+        }
+        .overlay(alignment: .bottomLeading) {
+            responseBadge
+                .padding(.leading, 11)
+                .padding(.bottom, 14)
+        }
+    }
+
+    /// Le pied de carte : hors maquette, mais sans lui rien ne dit que la
+    /// carte s'ouvre, et le fil de réponses resterait invisible.
+    private var responseBadge: some View {
+        HStack(spacing: 5) {
+            Text(label)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .black))
+        }
+        .font(.system(size: 13))
+        .fontWeight(.black)
+        .foregroundStyle(.accent.opacity(0.65))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label). Ouvrir le fil.")
+    }
+
+    /// Le pluriel se décide ici : « 1 réponses » se remarque plus qu'un fil
+    /// vide.
+    private var label: String {
+        switch post.responseCount {
+        case 0:  return "Répondre"
+        case 1:  return "1 réponse"
+        default: return "\(post.responseCount) réponses"
         }
     }
 }
