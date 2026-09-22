@@ -26,7 +26,26 @@ enum APIError: Error, LocalizedError {
 final class APIService {
     static let shared = APIService()
 
+    /// L'adresse du serveur de développement.
+    ///
+    /// Sur le simulateur, il partage la machine : `127.0.0.1` — et non
+    /// `localhost`, que `URLSession` peut résoudre en `::1` alors que le
+    /// serveur n'écoute qu'en IPv4.
+    ///
+    /// Sur un téléphone, `127.0.0.1` désigne **le téléphone** : la requête ne
+    /// quitte jamais l'appareil. Il lui faut l'adresse du Mac sur le réseau
+    /// local, que donne `ipconfig getifaddr en0`. Elle change avec le réseau —
+    /// c'est la ligne à reprendre quand l'app ne joint plus rien depuis un
+    /// appareil, alors qu'elle fonctionne au simulateur.
+    ///
+    /// Les deux conditions qui vont avec, côté Mac : le serveur doit écouter
+    /// sur `0.0.0.0` et non sur `127.0.0.1`, et le téléphone être sur le même
+    /// réseau Wi-Fi.
+    #if targetEnvironment(simulator)
     private let baseURL = "http://127.0.0.1:8080"
+    #else
+    private let baseURL = "http://192.168.68.71:8080"
+    #endif
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()

@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict/>
+<dict>
+	<!-- Le serveur de développement parle en clair, sur le réseau local. iOS
+	     refuse le HTTP par défaut : cette clé rouvre la porte pour les seules
+	     adresses privées et les noms non qualifiés, sans autoriser le reste
+	     d'internet comme le ferait NSAllowsArbitraryLoads. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<!-- Depuis iOS 14, joindre une machine du réseau local demande l'accord de
+	     l'utilisateur. Sans ce texte, le système ne pose pas la question et la
+	     connexion échoue sans rien dire. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Nébulo se connecte au serveur de développement qui tourne sur ton Mac, sur le même réseau Wi-Fi.</string>
+</dict>
 </plist>

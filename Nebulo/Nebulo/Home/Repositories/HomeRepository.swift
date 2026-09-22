@@ -11,6 +11,7 @@ protocol HomeRepositoryProtocol {
     func summary(token: String) async throws -> DividendSummaryResponseDTO
     func currentChallenge(token: String) async throws -> UserChallengeResponseDTO?
     func planets(token: String) async throws -> [PlanetResponseDTO]
+    func grade(token: String) async throws -> UserGradeResponseDTO
 }
 
 final class HomeRepository: HomeRepositoryProtocol {
@@ -33,5 +34,11 @@ final class HomeRepository: HomeRepositoryProtocol {
     /// et le mapper sont ceux du Profil : c'est la même route.
     func planets(token: String) async throws -> [PlanetResponseDTO] {
         try await apiService.get(endpoint: "/planets", token: token)
+    }
+
+    /// Le grade acquis, pour le hublot de la fusée. Le DTO et le mapper sont
+    /// ceux du Profil : c'est la même route.
+    func grade(token: String) async throws -> UserGradeResponseDTO {
+        try await apiService.get(endpoint: "/grades/me", token: token)
     }
 }

@@ -14,6 +14,9 @@ final class HomeViewModel: ObservableObject {
     /// Nil quand le pool est épuisé : tous les challenges ont été validés.
     @Published var challenge: Challenge? = nil
     @Published var planets: [Planet] = []
+    /// Le grade acquis. Il s'affiche dans le hublot de la fusée, derrière le
+    /// verre. Nil tant que le serveur n'a pas répondu.
+    @Published var grade: UserGrade? = nil
     /// Renseignée quand un rechargement découvre une planète qui ne l'était
     /// pas au précédent. L'écran s'en sert pour fêter le franchissement.
     @Published var justUnlocked: Planet? = nil
@@ -43,6 +46,10 @@ final class HomeViewModel: ObservableObject {
     init(service: HomeServiceProtocol? = nil) {
         self.service = service ?? HomeService()
     }
+
+    /// L'asset du grade acquis, pour le hublot. Nil avant la réponse du
+    /// serveur, ou si le référentiel des grades était vide.
+    var gradeImage: String? { grade?.current?.image }
 
     /// Le cumul de toujours, arrondi au centime. C'est le chiffre de tête du
     /// tableau de bord : ce que le portefeuille a rapporté en tout.
@@ -115,10 +122,11 @@ final class HomeViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         do {
-            let (summary, challenge, planets) = try await service.loadDashboard(token: token)
+            let (summary, challenge, planets, grade) = try await service.loadDashboard(token: token)
             self.summary = summary
             self.challenge = challenge
             self.planets = planets
+            self.grade = grade
             detectUnlock(in: planets)
             self.hasLoaded = true
         } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
