@@ -43,6 +43,9 @@ struct HomeView: View {
     @State private var isLaunching = false
     /// La célébration n'arrive qu'une fois le vaisseau sorti du cadre.
     @State private var showCelebration = false
+    /// La promotion se fête après elle, jamais en même temps : deux voiles
+    /// superposés ne se liraient ni l'un ni l'autre.
+    @State private var showPromotion = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Durée d'un tour complet du ciel, en secondes. Une étoile met alors une
@@ -134,7 +137,25 @@ struct HomeView: View {
             }
             portholeLayer
             launchRocketLayer
+            // Le grade gagné se fête à son tour, par-dessus le même décor. Un
+            // dividende peut franchir les deux seuils d'un coup : la planète
+            // passe d'abord, elle a le décollage pour elle, la promotion suit.
+            //
+            // Elle est posée ici, et non sur `screen` comme celle des
+            // planètes : celle-là n'arrive qu'une fois le vaisseau parti et le
+            // hublot effacé, alors que la promotion tombe sur un accueil
+            // intact. Attachée plus bas, elle passait sous le hublot.
+            if showPromotion,
+               let badge = viewModel.justPromoted,
+               let grade = viewModel.grade {
+                GradePromotedOverlay(
+                    badge: badge,
+                    hasNextGrade: grade.next != nil
+                ) { endPromotion() }
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeOut(duration: 0.25), value: showPromotion)
     }
 
     // MARK: Hublot et navigation
@@ -162,20 +183,30 @@ struct HomeView: View {
     private var portholeButton: some View {
         Button { toggleNav() } label: {
             ZStack {
+                // Le même verre que les pastilles, en rond : le décor passe au
+                // travers au lieu d'être masqué. Il reste au fond, sinon il
+                // floute le grade au point de le rendre illisible.
+                Color.clear
+                    .glassEffect(
+                        .clear.tint(Color.white.opacity(0.08)),
+                        in: .circle
+                    )
+
+                // Le grade tient dans les trois quarts du disque : entier,
+                // sans être coupé par le bord du verre.
                 if let image = viewModel.gradeImage {
                     Image(image)
                         .resizable()
                         .scaledToFit()
-                        .padding(12)
+                        .frame(
+                            width: Self.portholeDiameter * 0.72,
+                            height: Self.portholeDiameter * 0.72
+                        )
                 }
+
             }
             .frame(width: Self.portholeDiameter, height: Self.portholeDiameter)
-            // Le même verre que les pastilles, en rond : le décor passe au
-            // travers au lieu d'être masqué.
-            .glassEffect(
-                .clear.tint(Color.white.opacity(0.08)),
-                in: .circle
-            )
+            .clipShape(.circle)
         }
         .accessibilityLabel(
             viewModel.grade?.current.map { "Grade \($0.name). Ouvrir la navigation." }
@@ -358,6 +389,12 @@ struct HomeView: View {
         .onChange(of: viewModel.justUnlocked) { _, planet in
             if planet != nil { startLaunch() }
         }
+        .onChange(of: viewModel.justPromoted) { _, badge in
+            // Une planète en attente garde la main : `endCelebration` relaiera
+            // une fois son voile retombé.
+            guard badge != nil, viewModel.justUnlocked == nil else { return }
+            showPromotion = true
+        }
         // La planète est déjà en mémoire, chargée avec le tableau de bord :
         // rien à relire au serveur.
         .fullScreenCover(item: $selectedPlanet) { planet in
@@ -408,9 +445,24 @@ struct HomeView: View {
         }
     }
 
+    /// Referme la célébration du grade. Rien à remettre en place : elle n'a
+    /// pas touché au vaisseau.
+    private func endPromotion() {
+        showPromotion = false
+        viewModel.justPromoted = nil
+    }
+
     private func endCelebration() {
         showCelebration = false
         viewModel.justUnlocked = nil
+        // La promotion arrivée pendant le décollage attendait son tour. Le
+        // délai laisse le premier voile finir de s'effacer.
+        if viewModel.justPromoted != nil {
+            Task {
+                try? await Task.sleep(for: .milliseconds(420))
+                showPromotion = true
+            }
+        }
         // Le vaisseau reprend son poste une fois le voile retombé, et sans
         // animation : le voir redescendre défferait le décollage.
         Task {
@@ -558,21 +610,51 @@ struct HomeView: View {
 
     // MARK: Contenu
 
-    /// Le cumul de toujours des dividendes encaissés. Les cotes viennent de la
-    /// maquette : 146 sur 58, rayon 14, texte de 32.
+    /// Le cumul de toujours des dividendes encaissés, en tête d'écran.
+    ///
+    /// Le montant est surmonté de son nom : seul, « 225,30 € » pouvait aussi
+    /// bien être un solde, un objectif ou un gain du jour. Le mot tranche, et
+    /// le chiffre reste la seule chose qui pèse.
+    ///
+    /// La carte a quitté le bloc beige plein de la maquette pour le verre des
+    /// pastilles et du hublot : sur le ciel, un pavé opaque se lisait comme
+    /// une étiquette collée devant le décor, alors que le verre laisse passer
+    /// les étoiles et reste de la même famille que le reste de l'écran.
     private var totalCard: some View {
-        RoundedRectangle(cornerRadius: 14)
-            .fill(.beigeClear)
-            .frame(width: 146, height: 58)
-            .overlay {
-                Text(viewModel.totalLabel)
-                    .font(.system(size: 32))
-                    .fontWeight(.black)
-                    .foregroundStyle(.accent.opacity(0.47))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                    .padding(.horizontal, 12)
+        VStack(spacing: 7) {
+            Text("Dividendes")
+                .font(.system(size: 12, weight: .semibold))
+                .tracking(2)
+                .textCase(.uppercase)
+                .foregroundStyle(.beige.opacity(0.6))
+
+            // Le symbole est détaché du nombre, plus petit et en retrait :
+            // c'est le montant qu'on lit, la devise n'a qu'à être là.
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(viewModel.totalAmountLabel)
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .foregroundStyle(.beige)
+                Text("€")
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .foregroundStyle(.beige.opacity(0.55))
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .padding(.horizontal, 26)
+            .padding(.vertical, 11)
+            .glassEffect(
+                .clear.tint(Color.white.opacity(0.10)),
+                in: .rect(cornerRadius: 22)
+            )
+            .overlay {
+                // Un liseré d'un point : sur un ciel presque noir, le verre
+                // seul n'a pas de bord, et la carte flotte sans contour.
+                RoundedRectangle(cornerRadius: 22)
+                    .strokeBorder(Color.beige.opacity(0.18), lineWidth: 1)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Dividendes encaissés : \(viewModel.totalLabel)")
     }
 
     /// Lire le challenge courant le fait avancer : le serveur recalcule la

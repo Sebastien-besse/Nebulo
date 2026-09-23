@@ -20,6 +20,9 @@ final class HomeViewModel: ObservableObject {
     /// Renseignée quand un rechargement découvre une planète qui ne l'était
     /// pas au précédent. L'écran s'en sert pour fêter le franchissement.
     @Published var justUnlocked: Planet? = nil
+    /// Renseigné quand un rechargement découvre un grade plus élevé que celui
+    /// du précédent. Même rôle que `justUnlocked`, pour la promotion.
+    @Published var justPromoted: Badge? = nil
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     /// Vrai une fois que le serveur a répondu. Sert à distinguer « aucun
@@ -39,6 +42,10 @@ final class HomeViewModel: ObservableObject {
     /// huit pour des déblocages.
     private var knownUnlocked: Set<UUID>? = nil
 
+    /// Le grade du dernier chargement, pour la même raison : sans ce repère,
+    /// la première réponse du serveur se lirait comme une promotion.
+    private var knownGrade: String? = nil
+
     private let service: HomeServiceProtocol
 
     // La valeur par défaut est construite dans le corps : évaluée comme
@@ -57,6 +64,15 @@ final class HomeViewModel: ObservableObject {
         guard let summary else { return "—" }
         return summary.totalAllTime
             .formatted(.number.precision(.fractionLength(2))) + " €"
+    }
+
+    /// Le même cumul, sans la devise. La carte d'accueil pose le « € » à
+    /// part, plus petit : le chiffre reste alors seul à porter, et deux
+    /// montants de longueurs différentes s'alignent sur la même virgule.
+    var totalAmountLabel: String {
+        guard let summary else { return "—" }
+        return summary.totalAllTime
+            .formatted(.number.precision(.fractionLength(2)))
     }
 
     /// La planète la plus lointaine parmi celles déjà atteintes : c'est elle
@@ -113,6 +129,25 @@ final class HomeViewModel: ObservableObject {
             .max { $0.energyThreshold < $1.energyThreshold }
     }
 
+    /// Compare le grade reçu à celui du chargement précédent.
+    ///
+    /// Seule la montée est fêtée. L'XP n'est pas stockée, elle se recalcule à
+    /// chaque lecture : retirer une ligne du portefeuille fait redescendre, et
+    /// une rétrogradation célébrée serait une moquerie.
+    private func detectPromotion(in grade: UserGrade?) {
+        guard let current = grade?.current else { return }
+        defer { knownGrade = current.name }
+
+        guard let known = knownGrade,
+              known.lowercased() != current.name.lowercased(),
+              let knownRank = GradeCatalog.rank(ofName: known),
+              let newRank = GradeCatalog.rank(ofName: current.name),
+              newRank > knownRank
+        else { return }
+
+        justPromoted = current
+    }
+
     func load() async {
         hasAttemptedLoad = true
         guard let token = TokenStore.shared.token else {
@@ -128,6 +163,7 @@ final class HomeViewModel: ObservableObject {
             self.planets = planets
             self.grade = grade
             detectUnlock(in: planets)
+            detectPromotion(in: grade)
             self.hasLoaded = true
         } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
             sessionExpired = true

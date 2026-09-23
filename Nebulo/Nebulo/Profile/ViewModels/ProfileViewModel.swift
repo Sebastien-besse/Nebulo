@@ -72,9 +72,19 @@ final class ProfileViewModel: ObservableObject {
 
     /// Le grade courant, retrouvé par son nom parmi les huit badges.
     /// Renvoie nil tant que le serveur n'attribue pas un grade du catalogue.
+    ///
+    /// La source est `GET /grades/me`, qui recalcule le grade depuis l'XP à
+    /// l'instant de la lecture — la même que la carte de progression juste
+    /// au-dessus du carrousel, et que le hublot de l'accueil. `user.grade`
+    /// n'est qu'une colonne recopiée, et elle ne se remet d'accord qu'à la
+    /// connexion : un challenge validé en cours de session la laissait un ou
+    /// plusieurs paliers en arrière, et le carrousel montrait alors un grade
+    /// moins avancé que la carte. Elle ne sert plus que de secours, le temps
+    /// que la progression arrive.
     var currentGrade: Badge? {
-        guard let grade = user?.grade.lowercased() else { return nil }
-        return GradeCatalog.all.first { $0.name.lowercased() == grade }
+        guard let name = (grade?.current?.name ?? user?.grade)?.lowercased()
+        else { return nil }
+        return GradeCatalog.all.first { $0.name.lowercased() == name }
     }
 
     /// Un grade est verrouillé tant qu'il se situe après le grade courant dans

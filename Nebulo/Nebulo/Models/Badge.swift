@@ -36,6 +36,14 @@ enum GradeCatalog {
         Badge(image: "maitre",      name: "Maître"),
         Badge(image: "seigneur",    name: "Seigneur")
     ]
+
+    /// Le rang d'un grade dans la progression, retrouvé par son nom. Sert à
+    /// distinguer une promotion d'une rétrogradation : l'XP se recalcule à
+    /// chaque lecture, et retirer une ligne du portefeuille peut faire
+    /// redescendre d'un palier. Seule la montée se fête.
+    static func rank(ofName name: String) -> Int? {
+        all.firstIndex { $0.name.lowercased() == name.lowercased() }
+    }
 }
 
 /// Le grade acquis et le prochain palier, tels que les renvoie `GET /grades/me`.
