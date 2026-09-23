@@ -46,6 +46,10 @@ struct HomeView: View {
     /// La promotion se fête après elle, jamais en même temps : deux voiles
     /// superposés ne se liraient ni l'un ni l'autre.
     @State private var showPromotion = false
+    /// Le challenge validé se fête avant les deux autres : c'est son énergie
+    /// qui a débloqué la planète, et la planète qui a fait monter le grade.
+    /// La chaîne se déroule donc dans l'ordre où elle s'est produite.
+    @State private var showChallengeDone = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Durée d'un tour complet du ciel, en secondes. Une étoile met alors une
@@ -154,8 +158,29 @@ struct HomeView: View {
                 ) { endPromotion() }
                     .transition(.opacity)
             }
+            // Le challenge validé ouvre la marche. Posé ici pour la même
+            // raison que la promotion : il tombe sur un accueil intact, et
+            // attaché plus bas il passerait sous le hublot.
+            if showChallengeDone, let completed = viewModel.justCompletedChallenge {
+                ChallengeCompletedOverlay(
+                    challenge: completed,
+                    hasNextChallenge: hasNextChallenge(after: completed)
+                ) { endChallengeDone() }
+                    .transition(.opacity)
+            }
         }
         .animation(.easeOut(duration: 0.25), value: showPromotion)
+        .animation(.easeOut(duration: 0.25), value: showChallengeDone)
+    }
+
+    /// Reste-t-il un challenge après celui qu'on vient de valider ?
+    ///
+    /// Le serveur tire le suivant dans la foulée et le met à la place du
+    /// validé : s'il en reste un, c'est celui que l'accueil affiche déjà. Même
+    /// identifiant, ou plus rien du tout, et le pool est épuisé.
+    private func hasNextChallenge(after completed: Challenge) -> Bool {
+        guard let current = viewModel.challenge else { return false }
+        return current.id != completed.id
     }
 
     // MARK: Hublot et navigation
@@ -386,13 +411,23 @@ struct HomeView: View {
             }
         }
         .animation(.easeOut(duration: 0.25), value: showCelebration)
+        .onChange(of: viewModel.justCompletedChallenge) { _, completed in
+            if completed != nil { showChallengeDone = true }
+        }
         .onChange(of: viewModel.justUnlocked) { _, planet in
-            if planet != nil { startLaunch() }
+            // Un challenge en attente garde la main : `endChallengeDone`
+            // relaiera une fois son voile retombé.
+            guard planet != nil, viewModel.justCompletedChallenge == nil else { return }
+            startLaunch()
         }
         .onChange(of: viewModel.justPromoted) { _, badge in
-            // Une planète en attente garde la main : `endCelebration` relaiera
-            // une fois son voile retombé.
-            guard badge != nil, viewModel.justUnlocked == nil else { return }
+            // Une planète ou un challenge en attente garde la main :
+            // `endCelebration` et `endChallengeDone` relaieront, chacun une
+            // fois son voile retombé.
+            guard badge != nil,
+                  viewModel.justUnlocked == nil,
+                  viewModel.justCompletedChallenge == nil
+            else { return }
             showPromotion = true
         }
         // La planète est déjà en mémoire, chargée avec le tableau de bord :
@@ -445,6 +480,24 @@ struct HomeView: View {
         }
     }
 
+    /// Referme la célébration du challenge et passe la main à la suite de la
+    /// chaîne : la planète d'abord, qui a le décollage pour elle, le grade
+    /// sinon. Le délai laisse le premier voile finir de s'effacer.
+    private func endChallengeDone() {
+        showChallengeDone = false
+        viewModel.justCompletedChallenge = nil
+
+        guard viewModel.justUnlocked != nil || viewModel.justPromoted != nil else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(420))
+            if viewModel.justUnlocked != nil {
+                startLaunch()
+            } else {
+                showPromotion = true
+            }
+        }
+    }
+
     /// Referme la célébration du grade. Rien à remettre en place : elle n'a
     /// pas touché au vaisseau.
     private func endPromotion() {
@@ -463,17 +516,17 @@ struct HomeView: View {
                 showPromotion = true
             }
         }
-        // Le vaisseau reprend son poste une fois le voile retombé, et sans
-        // animation : le voir redescendre défferait le décollage.
-        Task {
-            try? await Task.sleep(for: .milliseconds(320))
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                isLaunching = false
-                isShaking = false
-                isReadyToLaunch = false
-            }
+        // Le vaisseau reprend son poste dans la même image que la fermeture,
+        // pendant que le voile est encore opaque, et sans animation : le voir
+        // redescendre défferait le décollage. Attendre que le voile soit
+        // retombé laissait au contraire un accueil sans fusée pendant deux
+        // dixièmes de seconde.
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            isLaunching = false
+            isShaking = false
+            isReadyToLaunch = false
         }
     }
 

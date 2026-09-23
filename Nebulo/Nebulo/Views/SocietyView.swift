@@ -13,6 +13,11 @@ struct SocietyView: View {
     @StateObject private var viewModel: SocietyViewModel
     /// Le message dont on déroule le fil. Nil tant qu'aucun n'est ouvert.
     @State private var openedPost: Post?
+    /// La feuille d'écriture est ouverte. Un commentaire sur l'entreprise est
+    /// un message du forum, mais l'écran de rédaction complet — titre,
+    /// carrousel des entreprises — demanderait de rechoisir celle qu'on a sous
+    /// les yeux.
+    @State private var isWritingComment = false
 
     /// Le ViewModel est injecté, sans valeur par défaut : celle-ci serait
     /// évaluée hors de l'acteur principal. C'est aussi ce qui permet aux
@@ -26,10 +31,31 @@ struct SocietyView: View {
             Color.accentColor.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Pas de bouton à droite : la maquette n'en montre aucun.
-                HeaderBar(title: "Société")
+                // Écart assumé : la maquette ne pose aucun bouton ici, mais
+                // rien ne permettait alors d'écrire sur une entreprise depuis
+                // sa fiche.
+                HeaderBar(title: "Société", trailingIcon: "IconePlus") {
+                    isWritingComment = true
+                }
                 content
             }
+        }
+        // La feuille monte par-dessus l'écran plutôt que d'être un écran de
+        // plus : on écrit sur l'entreprise qu'on a sous les yeux, et la quitter
+        // pour deux phrases ferait perdre le fil qu'on vient de lire.
+        .sheet(isPresented: $isWritingComment, onDismiss: { viewModel.publishError = nil }) {
+            WriteCommentSheet(
+                companyName: viewModel.company?.name ?? "",
+                draft: $viewModel.commentDraft,
+                errorMessage: viewModel.publishError,
+                isSending: viewModel.isPublishing,
+                onCancel: { isWritingComment = false },
+                onPublish: {
+                    Task {
+                        if await viewModel.publishComment() { isWritingComment = false }
+                    }
+                }
+            )
         }
         // L'écran a son propre bouton retour, dessiné dans l'en-tête.
         .toolbar(.hidden, for: .navigationBar)
@@ -43,6 +69,17 @@ struct SocietyView: View {
         // d'afficher une erreur que l'utilisateur ne peut pas résoudre.
         .onChange(of: viewModel.sessionExpired) { _, expired in
             if expired { authViewModel.logout() }
+        }
+        // De retour du fil. L'écran reste vivant pendant qu'il est empilé
+        // dessus, donc son `task` ne se rejoue pas — or une réponse a pu y
+        // être écrite, et le nombre affiché sur la carte en dépend.
+        //
+        // Un chargement déjà lancé tient : la suppression d'un message
+        // recharge avant de dépiler, pour que la carte disparue ne
+        // réapparaisse pas le temps d'un aller-retour.
+        .onChange(of: openedPost) { _, post in
+            guard post == nil, !viewModel.isLoading else { return }
+            Task { await viewModel.load() }
         }
         .navigationDestination(item: $openedPost) { post in
             // Le carrousel se recharge avant de réapparaître : le message

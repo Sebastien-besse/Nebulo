@@ -18,6 +18,14 @@ final class SocietyViewModel: ObservableObject {
     /// Carte au centre du carrousel. Les voisines s'estompent, comme dans la
     /// maquette où elles ne sont qu'à 24 %.
     @Published var activeIndex: Int = 0
+    /// Le commentaire en cours d'écriture, dans le modal.
+    @Published var commentDraft: String = ""
+    /// Vrai pendant la publication : le modal éteint ses boutons.
+    @Published var isPublishing: Bool = false
+    /// L'erreur de publication, distincte de celle du chargement : elle se lit
+    /// dans le modal, à côté du bouton qui l'a déclenchée.
+    @Published var publishError: String? = nil
+
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     /// Vrai une fois que le serveur a répondu. Sert à distinguer « aucun
@@ -73,5 +81,49 @@ final class SocietyViewModel: ObservableObject {
             errorMessage = "Une erreur est survenue"
         }
         isLoading = false
+    }
+
+    /// Publie le commentaire en cours sur l'entreprise affichée.
+    ///
+    /// Renvoie vrai quand le serveur a accepté, pour que l'écran sache
+    /// refermer le modal. Le fil est rechargé plutôt que complété sur place :
+    /// c'est le serveur qui décide de l'ordre des cartes, et deviner où glisser
+    /// la nouvelle reviendrait à réécrire ce tri ici.
+    @discardableResult
+    func publishComment() async -> Bool {
+        let content = commentDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !content.isEmpty else {
+            publishError = "Le commentaire ne peut pas être vide"
+            return false
+        }
+        guard let token = TokenStore.shared.token else {
+            sessionExpired = true
+            return false
+        }
+
+        isPublishing = true
+        publishError = nil
+        defer { isPublishing = false }
+
+        do {
+            _ = try await service.createComment(
+                content: content,
+                companyId: companyId,
+                token: token
+            )
+            // Vidé seulement une fois le serveur d'accord : sur un échec, le
+            // texte reste dans le champ plutôt que d'être perdu.
+            commentDraft = ""
+            await load()
+            return true
+        } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
+            sessionExpired = true
+        } catch let error as APIError {
+            publishError = error.errorDescription
+        } catch {
+            publishError = "Une erreur est survenue"
+        }
+        return false
     }
 }

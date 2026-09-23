@@ -19,7 +19,7 @@ enum ChallengeType: String, Codable {
 ///
 /// Les challenges sont tirés dans un pool, jamais deux fois le même. Le
 /// suivant tombe dès que le précédent est validé, sans calendrier.
-struct Challenge {
+struct Challenge: Equatable {
     let id: UUID
     let description: String
     let type: ChallengeType

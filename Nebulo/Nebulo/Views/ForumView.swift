@@ -71,6 +71,18 @@ struct ForumView: View {
         .onChange(of: viewModel.sessionExpired) { _, expired in
             if expired { authViewModel.logout() }
         }
+        // De retour d'un écran poussé. Le forum est vivant tant qu'il est
+        // dessous, donc son `task` ne se rejoue pas — or une réponse a pu
+        // être écrite dans le fil, ou dans celui d'une société, et le
+        // décompte des cartes en dépend.
+        //
+        // Un chargement déjà lancé tient : la suppression d'un message et
+        // l'ajout d'un autre rechargent avant de dépiler, pour que la liste
+        // soit à jour au moment où elle réapparaît.
+        .onChange(of: route) { _, destination in
+            guard destination == nil, !viewModel.isLoading else { return }
+            Task { await viewModel.load() }
+        }
         .navigationDestination(item: $route) { destination in
             switch destination {
             case .society(let companyId):
