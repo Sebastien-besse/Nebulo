@@ -11,6 +11,7 @@ protocol PortfolioServiceProtocol {
     func loadPortfolio(token: String) async throws -> [Action]
     func addAction(name: String, ticker: String, secteur: String, quantity: Int,
                    token: String) async throws -> Action
+    func addShares(to action: Action, quantity: Int, token: String) async throws -> Action
     func addDividend(perShare: Double, paymentDate: Date, actionId: UUID,
                      token: String) async throws
 }
@@ -52,6 +53,26 @@ final class PortfolioService: PortfolioServiceProtocol {
         )
         return ActionMapper.toDomain(try await repository.create(dto, token: token),
                                      dividendsTotal: 0)
+    }
+
+    /// Renforce une position : la même société, achetée une seconde fois.
+    ///
+    /// C'est `POST /actions` qui sert, pas une route dédiée : le serveur
+    /// reconnaît le ticker déjà détenu et additionne la quantité sur la ligne
+    /// existante. Le nom et le secteur sont ceux de la ligne, l'écran ne les
+    /// redemande pas.
+    ///
+    /// Le cumul des dividendes est repris tel quel : acheter des actions ne
+    /// change rien à ce qui a déjà été encaissé.
+    func addShares(to action: Action, quantity: Int, token: String) async throws -> Action {
+        let dto = CreateActionRequestDTO(
+            name: action.name,
+            ticker: action.ticker,
+            secteur: action.secteur,
+            quantity: quantity
+        )
+        return ActionMapper.toDomain(try await repository.create(dto, token: token),
+                                     dividendsTotal: action.dividendsTotal)
     }
 
     /// Rien n'est renvoyé : la ligne créée n'intéresse pas l'appelant, qui

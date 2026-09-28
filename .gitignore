@@ -1,0 +1,5 @@
+# État local d'Xcode : fenêtres ouvertes, onglets, schémas propres à chaque
+# poste. Il change à chaque ouverture du projet et n'a rien à faire dans
+# l'historique.
+*.xcuserstate
+xcuserdata/

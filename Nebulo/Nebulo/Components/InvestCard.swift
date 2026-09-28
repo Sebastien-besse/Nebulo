@@ -13,6 +13,11 @@ struct InvestCard: View {
     let action: Action
     /// Toucher la carte ouvre la saisie d'un dividende pour cette action.
     var onOpen: (() -> Void)? = nil
+    /// Toucher le badge des actions ouvre le renforcement de la position.
+    /// Deux gestes sur la même carte, parce que la maquette n'offre aucun
+    /// second bouton où loger celui-ci : le badge porte déjà la quantité,
+    /// c'est là qu'on va quand on veut la changer.
+    var onAddShares: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 20) {
@@ -63,8 +68,19 @@ struct InvestCard: View {
             // Le libellé des actions est collé à sa fusée dans la maquette,
             // celui des dividendes est séparé de son billet. Les deux sont
             // repris tels quels.
-            cardData(w: 80, title: "🚀Actions",
-                     value: "\(action.quantity)", color: .yellowCustom)
+            // Le badge est un bouton quand le renforcement est branché : posé
+            // sur la carte, il capte le toucher avant elle et n'ouvre donc
+            // pas la saisie d'un dividende.
+            if let onAddShares {
+                Button(action: onAddShares) {
+                    cardData(w: 80, title: "🚀Actions",
+                             value: "\(action.quantity)", color: .yellowCustom)
+                }
+                .buttonStyle(.plain)
+            } else {
+                cardData(w: 80, title: "🚀Actions",
+                         value: "\(action.quantity)", color: .yellowCustom)
+            }
             cardData(w: 98, title: "💶 Dividendes",
                      value: action.dividendsTotal.formatted(.number.precision(.fractionLength(0))) + "€",
                      color: .greenCustom)

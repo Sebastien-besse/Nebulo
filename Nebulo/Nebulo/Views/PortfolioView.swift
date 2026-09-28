@@ -11,6 +11,8 @@ import SwiftUI
 enum PortfolioRoute: Hashable {
     case addAction
     case addDividend(actionId: UUID)
+    /// Renforcer une position déjà détenue : même société, quantité en plus.
+    case addShares(actionId: UUID)
 }
 
 struct PortfolioView: View {
@@ -65,6 +67,14 @@ struct PortfolioView: View {
                 ) {
                     Task { await viewModel.load() }
                 }
+            case .addShares(let actionId):
+                // La quantité de la ligne change : même raison, la liste
+                // repart du serveur plutôt que de deviner le nouveau total.
+                AddSharesView(
+                    viewModel: AddSharesViewModel(preselectedActionId: actionId)
+                ) {
+                    Task { await viewModel.load() }
+                }
             }
         }
     }
@@ -98,9 +108,13 @@ struct PortfolioView: View {
                 GlassEffectContainer(spacing: 20) {
                     VStack(spacing: 20) {
                         ForEach(viewModel.sortedActions) { action in
-                            InvestCard(action: action) {
-                                route = .addDividend(actionId: action.id)
-                            }
+                            // La carte mène au dividende, son badge « Actions »
+                            // au renforcement de la position.
+                            InvestCard(
+                                action: action,
+                                onOpen: { route = .addDividend(actionId: action.id) },
+                                onAddShares: { route = .addShares(actionId: action.id) }
+                            )
                         }
                     }
                 }
