@@ -121,7 +121,13 @@ final class APIService {
     /// au forum, par exemple. L'autre `delete` exigerait qu'on invente un
     /// `Decodable` pour accueillir du néant.
     func deleteNoContent(endpoint: String, token: String) async throws {
-        let request = try buildRequest(endpoint: endpoint, method: "DELETE", body: Optional<String>.none, token: token)
+        try await deleteNoContent(endpoint: endpoint, body: Optional<String>.none, token: token)
+    }
+
+    /// Variante avec corps : supprimer son compte exige d'y joindre son mot
+    /// de passe.
+    func deleteNoContent<Body: Encodable>(endpoint: String, body: Body?, token: String) async throws {
+        let request = try buildRequest(endpoint: endpoint, method: "DELETE", body: body, token: token)
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let http = response as? HTTPURLResponse else {

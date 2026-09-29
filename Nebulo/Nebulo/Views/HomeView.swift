@@ -726,7 +726,34 @@ struct HomeView: View {
                 .opacity(0.8)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 30)
+            if let challenge = viewModel.challenge {
+                challengeGauge(challenge)
+                    .padding(.top, 2)
+            }
         }
+    }
+
+    /// La jauge du composant Figma « Challenges » : une piste jaune pâle de
+    /// 178 points, que le jaune plein remplit à mesure que l'objectif approche.
+    ///
+    /// Pas de largeur minimale au remplissage, contrairement à la barre d'XP :
+    /// un challenge qu'on vient de tirer part vraiment de zéro, et doit le montrer.
+    private func challengeGauge(_ challenge: Challenge) -> some View {
+        Capsule()
+            .fill(.yellowCustom.opacity(0.39))
+            .frame(width: 178, height: 13)
+            .overlay(alignment: .leading) {
+                Capsule()
+                    .fill(.yellowCustom)
+                    .frame(width: 178 * min(max(challenge.progressPercent, 0), 100) / 100)
+            }
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8),
+                value: challenge.progressPercent
+            )
+            .accessibilityElement()
+            .accessibilityLabel("Avancement du challenge")
+            .accessibilityValue(challenge.progressLabel)
     }
 
     private var challengeLabel: String {

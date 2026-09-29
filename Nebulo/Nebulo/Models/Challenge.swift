@@ -13,6 +13,19 @@ enum ChallengeType: String, Codable {
     case dividendTotal = "DIVIDEND_TOTAL"
     /// Nombre de dividendes enregistrés depuis le tirage.
     case dividendCount = "DIVIDEND_COUNT"
+    /// Plus gros dividende encaissé depuis le tirage, en euros.
+    case dividendMax = "DIVIDEND_MAX"
+    /// Nombre d'actions différentes ayant versé un dividende depuis le tirage.
+    case dividendStocks = "DIVIDEND_STOCKS"
+    /// Nombre de posts publiés sur le forum depuis le tirage, commentaires de
+    /// société exclus.
+    case postCount = "POST_COUNT"
+    /// Nombre de sociétés différentes commentées depuis le tirage.
+    case companyCommentCount = "COMPANY_COMMENT_COUNT"
+    /// Nombre de réponses écrites depuis le tirage.
+    case responseCount = "RESPONSE_COUNT"
+    /// Nombre de posts votés depuis le tirage.
+    case voteCount = "VOTE_COUNT"
 }
 
 /// Le challenge tiré au sort pour l'utilisateur, et son avancement.
@@ -31,6 +44,24 @@ struct Challenge: Equatable {
     /// Avancement de 0 à 100, déjà plafonné par le serveur.
     let progressPercent: Double
     let completed: Bool
+
+    /// L'avancement dans l'unité du challenge : « 1,20 € / 3 € » pour un
+    /// montant, « 1 / 3 » pour un décompte.
+    ///
+    /// Les centimes n'apparaissent que s'il y en a : un objectif de 3 € reste
+    /// « 3 € », pas « 3,00 € ».
+    var progressLabel: String {
+        switch type {
+        case .dividendTotal, .dividendMax:
+            // Deux décimales ou aucune : « 1,2 € » ne s'écrit pas.
+            let decimals = progress.rounded() == progress ? 0 : 2
+            let amount = progress.formatted(.number.precision(.fractionLength(decimals)))
+            return "\(amount) € / \(objectif) €"
+        case .dividendCount, .dividendStocks, .postCount, .companyCommentCount,
+             .responseCount, .voteCount:
+            return "\(Int(progress)) / \(objectif)"
+        }
+    }
 }
 
 /// Synthèse des dividendes, source du montant affiché sur l'accueil.

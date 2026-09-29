@@ -22,3 +22,9 @@ struct UpdateProfileRequestDTO: Encodable {
     /// serveur conserve le hash existant.
     let password: String?
 }
+
+/// Corps de `DELETE /users/me`. Le serveur revérifie le mot de passe avant
+/// d'effacer : le jeton seul ne prouve pas que c'est bien la personne.
+struct DeleteAccountRequestDTO: Encodable {
+    let password: String
+}

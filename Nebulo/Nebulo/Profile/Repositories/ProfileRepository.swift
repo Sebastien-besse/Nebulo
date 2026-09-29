@@ -12,7 +12,7 @@ protocol ProfileRepositoryProtocol {
     func planets(token: String) async throws -> [PlanetResponseDTO]
     func grade(token: String) async throws -> UserGradeResponseDTO
     func update(_ dto: UpdateProfileRequestDTO, token: String) async throws -> UserResponseDTO
-    func delete(token: String) async throws
+    func delete(password: String, token: String) async throws
 }
 
 final class ProfileRepository: ProfileRepositoryProtocol {
@@ -42,8 +42,12 @@ final class ProfileRepository: ProfileRepositoryProtocol {
 
     /// Le serveur répond `204 No Content` : il n'y a rien à décoder. Les
     /// actions, dividendes, posts et votes du compte partent avec lui, par
-    /// cascade en base.
-    func delete(token: String) async throws {
-        try await apiService.deleteNoContent(endpoint: "/users/me", token: token)
+    /// cascade en base. Un mot de passe faux répond `403`.
+    func delete(password: String, token: String) async throws {
+        try await apiService.deleteNoContent(
+            endpoint: "/users/me",
+            body: DeleteAccountRequestDTO(password: password),
+            token: token
+        )
     }
 }

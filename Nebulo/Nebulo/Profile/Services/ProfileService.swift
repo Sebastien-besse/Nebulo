@@ -10,7 +10,7 @@ import Foundation
 protocol ProfileServiceProtocol {
     func loadProfile(token: String) async throws -> (user: User, planets: [Planet], grade: UserGrade)
     func updateProfile(_ user: User, password: String?, token: String) async throws -> User
-    func deleteAccount(token: String) async throws
+    func deleteAccount(password: String, token: String) async throws
 }
 
 final class ProfileService: ProfileServiceProtocol {
@@ -44,7 +44,7 @@ final class ProfileService: ProfileServiceProtocol {
         return UserMapper.toDomain(try await repository.update(dto, token: token))
     }
 
-    func deleteAccount(token: String) async throws {
-        try await repository.delete(token: token)
+    func deleteAccount(password: String, token: String) async throws {
+        try await repository.delete(password: password, token: token)
     }
 }

@@ -56,7 +56,9 @@ final class ProfileViewModel: ObservableObject {
     @Published var isSaving: Bool = false
 
     /// Suppression du compte. Son erreur a son propre message : elle
-    /// s'affiche sous le bouton, en bas d'écran, loin des champs du profil.
+    /// s'affiche dans le modal de confirmation, sous le mot de passe.
+    @Published var isConfirmingDeletion: Bool = false
+    @Published var deletionPassword: String = ""
     @Published var isDeleting: Bool = false
     @Published var deleteErrorMessage: String? = nil
     /// Vrai une fois le compte supprimé : l'écran sort alors de la session.
@@ -189,9 +191,28 @@ final class ProfileViewModel: ObservableObject {
         isSaving = false
     }
 
-    /// Supprime le compte du porteur du jeton. Irréversible : l'écran demande
-    /// confirmation avant d'appeler.
+    /// Ouvre la confirmation, toujours sur un champ vide : un mot de passe
+    /// tapé lors d'une ouverture précédente ne doit pas y traîner.
+    func startDeletion() {
+        deletionPassword = ""
+        deleteErrorMessage = nil
+        isConfirmingDeletion = true
+    }
+
+    func cancelDeletion() {
+        guard !isDeleting else { return }
+        isConfirmingDeletion = false
+        deletionPassword = ""
+        deleteErrorMessage = nil
+    }
+
+    /// Supprime le compte du porteur du jeton. Irréversible : le serveur
+    /// revérifie le mot de passe saisi dans le modal avant d'effacer.
     func deleteAccount() async {
+        guard !deletionPassword.isEmpty else {
+            deleteErrorMessage = "Saisis ton mot de passe pour confirmer"
+            return
+        }
         guard let token = TokenStore.shared.token else {
             sessionExpired = true
             return
@@ -199,8 +220,14 @@ final class ProfileViewModel: ObservableObject {
         isDeleting = true
         deleteErrorMessage = nil
         do {
-            try await service.deleteAccount(token: token)
+            try await service.deleteAccount(password: deletionPassword, token: token)
+            deletionPassword = ""
             accountDeleted = true
+        } catch APIError.httpError(let statusCode, let message) where statusCode == 403 {
+            // Mauvais mot de passe : le champ se vide pour une nouvelle
+            // saisie, le modal reste ouvert.
+            deletionPassword = ""
+            deleteErrorMessage = message
         } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
             sessionExpired = true
         } catch APIError.httpError(let statusCode, _) where statusCode == 404 {

@@ -13,8 +13,6 @@ struct ProfilView: View {
     /// La fiche d'une planète se présente par-dessus le profil plutôt que
     /// de s'y empiler : on en revient, on n'y progresse pas.
     @State private var selectedPlanet: Planet?
-    /// La suppression du compte est irréversible : elle passe par une alerte.
-    @State private var isConfirmingDeletion = false
 
     /// Le ViewModel est injecté, sans valeur par défaut : celle-ci serait
     /// évaluée hors de l'acteur principal. Les appelants le construisent donc
@@ -69,8 +67,25 @@ struct ProfilView: View {
                 )
                 .transition(.opacity)
             }
+
+            // La suppression est irréversible : elle passe par un modal qui
+            // redemande le mot de passe.
+            if viewModel.isConfirmingDeletion {
+                DeleteAccountDialog(
+                    title: "Quitter l'équipage ?",
+                    message: deletionMessage,
+                    badgeImage: viewModel.currentGrade?.image,
+                    password: $viewModel.deletionPassword,
+                    errorMessage: viewModel.deleteErrorMessage,
+                    isWorking: viewModel.isDeleting,
+                    onCancel: { viewModel.cancelDeletion() },
+                    onConfirm: { Task { await viewModel.deleteAccount() } }
+                )
+                .transition(.opacity)
+            }
         }
         .animation(.easeOut(duration: 0.18), value: viewModel.editingField)
+        .animation(.easeOut(duration: 0.18), value: viewModel.isConfirmingDeletion)
         // L'écran a son propre bouton retour, dessiné dans l'en-tête.
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
@@ -87,14 +102,6 @@ struct ProfilView: View {
         // Le compte n'existe plus : son jeton ne vaut plus rien.
         .onChange(of: viewModel.accountDeleted) { _, deleted in
             if deleted { authViewModel.logout() }
-        }
-        .alert("Supprimer ton compte ?", isPresented: $isConfirmingDeletion) {
-            Button("Annuler", role: .cancel) {}
-            Button("Supprimer", role: .destructive) {
-                Task { await viewModel.deleteAccount() }
-            }
-        } message: {
-            Text("Tes actions, dividendes, planètes et messages du forum seront effacés. Cette action est définitive.")
         }
         // La planète est déjà en mémoire : l'écran de détail ne lit rien au
         // serveur, il n'y a donc rien à recharger.
@@ -264,29 +271,27 @@ struct ProfilView: View {
 
     /// Volontairement discret : un lien texte sous la déconnexion, pas un
     /// second gros bouton qui lui ferait concurrence.
+    /// L'attente et les erreurs s'affichent dans le modal : le lien, lui,
+    /// ne fait que l'ouvrir.
     private var deleteAccountButton: some View {
-        VStack(spacing: 8) {
-            if viewModel.isDeleting {
-                ProgressView()
-                    .tint(.beigeClear)
-            } else {
-                Button("Supprimer son compte") {
-                    isConfirmingDeletion = true
-                }
-                .font(.system(size: 14))
-                .underline()
-                .foregroundStyle(.beige.opacity(0.6))
-            }
-
-            if let error = viewModel.deleteErrorMessage {
-                Text(error)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-            }
+        Button("Supprimer son compte") {
+            viewModel.startDeletion()
         }
+        .font(.system(size: 14))
+        .underline()
+        .foregroundStyle(.beige.opacity(0.6))
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
+    }
+
+    /// Le message s'adresse à la personne par son prénom, dans le ton de
+    /// l'app : ce qui disparaît, c'est son voyage.
+    private var deletionMessage: String {
+        let losses = "ta fusée, tes planètes, tes actions et tes messages du forum partiront en poussière d'étoiles. Aucun retour possible depuis ce trou noir."
+        guard let firstname = viewModel.user?.firstname, !firstname.isEmpty else {
+            return losses.prefix(1).uppercased() + losses.dropFirst()
+        }
+        return "\(firstname), \(losses)"
     }
 }
 
