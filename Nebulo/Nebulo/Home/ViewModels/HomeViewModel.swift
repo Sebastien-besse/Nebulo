@@ -23,9 +23,9 @@ final class HomeViewModel: ObservableObject {
     /// Renseigné quand un rechargement découvre un grade plus élevé que celui
     /// du précédent. Même rôle que `justUnlocked`, pour la promotion.
     @Published var justPromoted: Badge? = nil
-    /// Renseigné quand un rechargement découvre que le challenge en cours a
-    /// été validé. Même rôle que les deux précédents, et c'est celui-ci qui
-    /// passe en premier : l'énergie qu'il crédite est la cause des deux autres.
+    /// Renseigné quand le serveur annonce qu'un chargement vient de valider le
+    /// challenge en cours. Même rôle que les deux précédents, et c'est celui-ci
+    /// qui passe en premier : l'énergie qu'il crédite est la cause des deux autres.
     @Published var justCompletedChallenge: Challenge? = nil
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
@@ -49,10 +49,6 @@ final class HomeViewModel: ObservableObject {
     /// Le grade du dernier chargement, pour la même raison : sans ce repère,
     /// la première réponse du serveur se lirait comme une promotion.
     private var knownGrade: String? = nil
-
-    /// Le challenge en cours au dernier chargement. Même repère, et même
-    /// raison : le premier challenge tiré n'est pas un challenge validé.
-    private var knownChallengeID: UUID? = nil
 
     private let service: HomeServiceProtocol
 
@@ -164,33 +160,6 @@ final class HomeViewModel: ObservableObject {
         justPromoted = current
     }
 
-    /// Compare le challenge reçu à celui du chargement précédent.
-    ///
-    /// Les challenges se valident côté serveur, à la lecture : `GET
-    /// /challenges/current` recalcule la progression, crédite l'énergie si
-    /// l'objectif est atteint, puis tire le suivant et le renvoie à sa place.
-    /// Le client ne voit donc jamais passer le `completed` — sauf au bout du
-    /// pool, où il n'y a plus rien à tirer. La validation se lit à ce que le
-    /// challenge affiché a changé, pas à un drapeau.
-    private func detectChallengeCompletion(previous: Challenge?, next: Challenge?) {
-        defer { knownChallengeID = next?.id }
-
-        guard let known = knownChallengeID,
-              let previous, previous.id == known
-        else { return }
-
-        // Le pool est épuisé : le serveur rend le challenge validé lui-même,
-        // faute de successeur à tirer.
-        if let next, next.id == known {
-            if next.completed { justCompletedChallenge = next }
-            return
-        }
-
-        // Le challenge affiché a changé, ou a disparu : le précédent vient
-        // d'être validé.
-        justCompletedChallenge = previous
-    }
-
     func load() async {
         hasAttemptedLoad = true
         guard let token = tokenProvider() else {
@@ -200,10 +169,7 @@ final class HomeViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         do {
-            let (summary, challenge, planets, grade) = try await service.loadDashboard(token: token)
-            // Le challenge affiché jusqu'ici, avant d'être remplacé : c'est
-            // lui qu'on fête, pas celui que le serveur vient de tirer.
-            let previousChallenge = self.challenge
+            let (summary, challenge, justCompleted, planets, grade) = try await service.loadDashboard(token: token)
             self.summary = summary
             self.challenge = challenge
             self.planets = planets
@@ -211,7 +177,13 @@ final class HomeViewModel: ObservableObject {
             // L'ordre des trois détections n'importe pas — l'écran, lui,
             // ordonne les célébrations —, mais celle du challenge vient en
             // tête : c'est son énergie qui a débloqué les deux autres.
-            detectChallengeCompletion(previous: previousChallenge, next: challenge)
+            //
+            // Pour le challenge, rien à déduire : le serveur dit lui-même
+            // qu'il vient d'en valider un. Le client le devinait autrefois au
+            // changement de challenge d'un chargement à l'autre — aveugle au
+            // premier chargement, et trompé par un challenge désactivé, qui
+            // change aussi sans rien rapporter.
+            if let justCompleted { justCompletedChallenge = justCompleted }
             detectUnlock(in: planets)
             detectPromotion(in: grade)
             self.hasLoaded = true

@@ -35,4 +35,16 @@ struct UserChallengeResponseDTO: Decodable {
     let progressPercent: Double
     let completed: Bool
     let completedAt: Date?
+    /// Le challenge que cette lecture vient de valider. Seule la requête qui a
+    /// crédité la récompense le renseigne : c'est lui, et lui seul, qui déclenche
+    /// la célébration.
+    let justCompleted: CompletedChallengeResponseDTO?
+}
+
+/// Un challenge au moment de sa validation.
+struct CompletedChallengeResponseDTO: Decodable {
+    let challenge: ChallengeResponseDTO
+    let assignedAt: Date
+    let progress: Double
+    let completedAt: Date
 }

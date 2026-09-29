@@ -13,12 +13,14 @@ import Testing
 /// Chaque `load()` consomme la suivante : c'est ce qui permet de rejouer deux
 /// chargements successifs et d'observer ce que le second découvre.
 private final class FakeHomeService: HomeServiceProtocol, @unchecked Sendable {
-    typealias Response = (planets: [Planet], grade: UserGrade, challenge: Challenge?)
+    /// `justCompleted` : le challenge que le serveur annonce avoir validé
+    /// pendant ce chargement.
+    typealias Response = (planets: [Planet], grade: UserGrade, challenge: Challenge?, justCompleted: Challenge?)
 
     private var responses: [Response]
 
     init(responses: [(planets: [Planet], grade: UserGrade)]) {
-        self.responses = responses.map { ($0.planets, $0.grade, nil) }
+        self.responses = responses.map { ($0.planets, $0.grade, nil, nil) }
     }
 
     init(responses: [Response]) {
@@ -26,9 +28,9 @@ private final class FakeHomeService: HomeServiceProtocol, @unchecked Sendable {
     }
 
     func loadDashboard(token: String) async throws
-        -> (summary: DividendSummary, challenge: Challenge?, planets: [Planet], grade: UserGrade) {
+        -> (summary: DividendSummary, challenge: Challenge?, justCompleted: Challenge?, planets: [Planet], grade: UserGrade) {
         let next = responses.removeFirst()
-        return (fakeSummary, next.challenge, next.planets, next.grade)
+        return (fakeSummary, next.challenge, next.justCompleted, next.planets, next.grade)
     }
 }
 
@@ -82,6 +84,16 @@ private func challenge(_ label: String, reward: Int = 30, completed: Bool = fals
         progress: 0,
         progressPercent: 0,
         completed: completed
+    )
+}
+
+/// Le même challenge, objectif atteint, tel que le serveur l'annonce.
+private func validated(_ challenge: Challenge) -> Challenge {
+    Challenge(
+        id: challenge.id, description: challenge.description, type: challenge.type,
+        objectif: challenge.objectif, energyReward: challenge.energyReward,
+        assignedAt: challenge.assignedAt, progress: Double(challenge.objectif),
+        progressPercent: 100, completed: true
     )
 }
 
@@ -150,24 +162,58 @@ struct HomeUnlockDetectionTests {
         #expect(viewModel.justPromoted == nil)
     }
 
-    /// Le serveur valide à la lecture : il crédite l'énergie, tire le suivant
-    /// et le renvoie à la place du validé. C'est ce remplacement, et lui seul,
-    /// qui dit au client qu'un challenge vient de tomber.
-    @Test func leChallengeRemplaceSignaleUneValidation() async {
+    /// Le serveur valide à la lecture : il crédite l'énergie, tire le suivant,
+    /// le renvoie à la place du validé, et annonce ce dernier. C'est cette
+    /// annonce, et elle seule, qui déclenche la célébration.
+    @Test func leServeurAnnonceLaValidation() async {
         let premier = challenge("Enregistre 5 dividendes")
-        let second = challenge("Encaisse 100 € de dividendes")
+        let second = challenge("Encaisse 3 € de dividendes")
 
         let viewModel = HomeViewModel(service: FakeHomeService(responses: [
-            (planets(energy: 1_500), grade(1), premier),
-            (planets(energy: 1_500), grade(1), second)
+            (planets(energy: 1_500), grade(1), premier, nil),
+            (planets(energy: 1_500), grade(1), second, validated(premier))
         ]), tokenProvider: { "test" })
 
         await viewModel.load()
-        #expect(viewModel.justCompletedChallenge == nil, "Le premier chargement pose le repère")
+        #expect(viewModel.justCompletedChallenge == nil)
 
         await viewModel.load()
         #expect(viewModel.justCompletedChallenge?.description == "Enregistre 5 dividendes")
-        #expect(viewModel.challenge?.description == "Encaisse 100 € de dividendes")
+        #expect(viewModel.challenge?.description == "Encaisse 3 € de dividendes")
+    }
+
+    /// Le point 4.4 : l'app vient d'être lancée, et son tout premier chargement
+    /// valide le challenge. Il n'y a pas de chargement précédent auquel
+    /// comparer, la célébration part quand même.
+    @Test func premierChargementFeteUneValidation() async {
+        let premier = challenge("Enregistre 5 dividendes")
+        let second = challenge("Encaisse 3 € de dividendes")
+
+        let viewModel = HomeViewModel(service: FakeHomeService(responses: [
+            (planets(energy: 1_500), grade(1), second, validated(premier))
+        ]), tokenProvider: { "test" })
+
+        await viewModel.load()
+
+        #expect(viewModel.justCompletedChallenge?.description == "Enregistre 5 dividendes")
+    }
+
+    /// Un challenge désactivé est remplacé par un autre sans avoir été validé :
+    /// le challenge change, mais rien n'a été gagné, et rien ne se fête.
+    @Test func unChallengeRemplaceSansAnnonceNeFeteRien() async {
+        let retire = challenge("Enregistre 5 dividendes")
+        let remplacant = challenge("Encaisse 3 € de dividendes")
+
+        let viewModel = HomeViewModel(service: FakeHomeService(responses: [
+            (planets(energy: 1_500), grade(1), retire, nil),
+            (planets(energy: 1_500), grade(1), remplacant, nil)
+        ]), tokenProvider: { "test" })
+
+        await viewModel.load()
+        await viewModel.load()
+
+        #expect(viewModel.justCompletedChallenge == nil)
+        #expect(viewModel.challenge?.description == "Encaisse 3 € de dividendes")
     }
 
     /// Un challenge inchangé d'un chargement à l'autre n'est pas une
@@ -176,8 +222,8 @@ struct HomeUnlockDetectionTests {
         let seul = challenge("Enregistre 5 dividendes")
 
         let viewModel = HomeViewModel(service: FakeHomeService(responses: [
-            (planets(energy: 1_500), grade(1), seul),
-            (planets(energy: 1_500), grade(1), seul)
+            (planets(energy: 1_500), grade(1), seul, nil),
+            (planets(energy: 1_500), grade(1), seul, nil)
         ]), tokenProvider: { "test" })
 
         await viewModel.load()
@@ -187,26 +233,21 @@ struct HomeUnlockDetectionTests {
     }
 
     /// Au bout du pool, il n'y a plus de successeur à tirer : le serveur rend
-    /// le challenge validé lui-même, drapeau levé.
-    @Test func leDernierDuPoolSeFeteSurSonDrapeau() async {
+    /// le challenge validé lui-même, et l'annonce.
+    @Test func leDernierDuPoolSeFete() async {
         let dernier = challenge("Enregistre 5 dividendes")
-        var valide = dernier
-        valide = Challenge(
-            id: dernier.id, description: dernier.description, type: dernier.type,
-            objectif: dernier.objectif, energyReward: dernier.energyReward,
-            assignedAt: dernier.assignedAt, progress: 5, progressPercent: 100,
-            completed: true
-        )
 
         let viewModel = HomeViewModel(service: FakeHomeService(responses: [
-            (planets(energy: 1_500), grade(1), dernier),
-            (planets(energy: 1_500), grade(1), valide)
+            (planets(energy: 1_500), grade(1), dernier, nil),
+            (planets(energy: 1_500), grade(1), validated(dernier), validated(dernier))
         ]), tokenProvider: { "test" })
 
         await viewModel.load()
         await viewModel.load()
 
         #expect(viewModel.justCompletedChallenge?.completed == true)
+        #expect(viewModel.justCompletedChallenge?.id == viewModel.challenge?.id,
+                "Même identifiant : l'écran en déduit qu'il n'y a pas de suivant")
     }
 
     /// Le cas complet : le challenge crédite l'énergie, l'énergie débloque
@@ -214,11 +255,11 @@ struct HomeUnlockDetectionTests {
     /// célébrations sont armées ensemble, l'écran les ordonne.
     @Test func lesTroisCelebrationsPeuventTomberEnsemble() async {
         let premier = challenge("Enregistre 5 dividendes")
-        let second = challenge("Encaisse 100 € de dividendes")
+        let second = challenge("Encaisse 3 € de dividendes")
 
         let viewModel = HomeViewModel(service: FakeHomeService(responses: [
-            (planets(energy: 1_500), grade(1), premier),
-            (planets(energy: 5_000), grade(3), second)
+            (planets(energy: 1_500), grade(1), premier, nil),
+            (planets(energy: 5_000), grade(3), second, validated(premier))
         ]), tokenProvider: { "test" })
 
         await viewModel.load()

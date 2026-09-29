@@ -9,7 +9,7 @@ import Foundation
 
 protocol HomeServiceProtocol {
     func loadDashboard(token: String) async throws
-        -> (summary: DividendSummary, challenge: Challenge?, planets: [Planet], grade: UserGrade)
+        -> (summary: DividendSummary, challenge: Challenge?, justCompleted: Challenge?, planets: [Planet], grade: UserGrade)
 }
 
 final class HomeService: HomeServiceProtocol {
@@ -31,8 +31,10 @@ final class HomeService: HomeServiceProtocol {
     ///
     /// Un aller-retour de plus, pour un accueil qui dit enfin la vérité.
     func loadDashboard(token: String) async throws
-        -> (summary: DividendSummary, challenge: Challenge?, planets: [Planet], grade: UserGrade) {
-        let challenge = try await repository.currentChallenge(token: token).map(ChallengeMapper.toDomain)
+        -> (summary: DividendSummary, challenge: Challenge?, justCompleted: Challenge?, planets: [Planet], grade: UserGrade) {
+        let challengeDTO = try await repository.currentChallenge(token: token)
+        let challenge = challengeDTO.map(ChallengeMapper.toDomain)
+        let justCompleted = challengeDTO?.justCompleted.map(ChallengeMapper.toDomain)
 
         async let summaryDTO = repository.summary(token: token)
         async let planetDTOs = repository.planets(token: token)
@@ -41,6 +43,6 @@ final class HomeService: HomeServiceProtocol {
         let summary = DividendSummaryMapper.toDomain(try await summaryDTO)
         let planets = try await planetDTOs.map(PlanetMapper.toDomain)
         let grade = GradeMapper.toDomain(try await gradeDTO)
-        return (summary, challenge, planets, grade)
+        return (summary, challenge, justCompleted, planets, grade)
     }
 }

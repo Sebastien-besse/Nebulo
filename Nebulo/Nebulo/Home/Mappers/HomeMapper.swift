@@ -35,4 +35,19 @@ enum ChallengeMapper {
             completed: dto.completed
         )
     }
+
+    /// Le challenge tout juste validé, tel que la célébration le montre.
+    static func toDomain(_ dto: CompletedChallengeResponseDTO) -> Challenge {
+        Challenge(
+            id: dto.challenge.id,
+            description: dto.challenge.description,
+            type: dto.challenge.type,
+            objectif: dto.challenge.objectif,
+            energyReward: dto.challenge.energyReward,
+            assignedAt: dto.assignedAt,
+            progress: dto.progress,
+            progressPercent: 100,
+            completed: true
+        )
+    }
 }
