@@ -55,6 +55,13 @@ final class ProfileViewModel: ObservableObject {
     @Published var draft: String = ""
     @Published var isSaving: Bool = false
 
+    /// Suppression du compte. Son erreur a son propre message : elle
+    /// s'affiche sous le bouton, en bas d'écran, loin des champs du profil.
+    @Published var isDeleting: Bool = false
+    @Published var deleteErrorMessage: String? = nil
+    /// Vrai une fois le compte supprimé : l'écran sort alors de la session.
+    @Published var accountDeleted: Bool = false
+
     private let service: ProfileServiceProtocol
 
     // La valeur par défaut est construite dans le corps : évaluée comme
@@ -180,6 +187,31 @@ final class ProfileViewModel: ObservableObject {
             errorMessage = "Une erreur est survenue"
         }
         isSaving = false
+    }
+
+    /// Supprime le compte du porteur du jeton. Irréversible : l'écran demande
+    /// confirmation avant d'appeler.
+    func deleteAccount() async {
+        guard let token = TokenStore.shared.token else {
+            sessionExpired = true
+            return
+        }
+        isDeleting = true
+        deleteErrorMessage = nil
+        do {
+            try await service.deleteAccount(token: token)
+            accountDeleted = true
+        } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
+            sessionExpired = true
+        } catch APIError.httpError(let statusCode, _) where statusCode == 404 {
+            // Le compte n'existe déjà plus : le résultat voulu est atteint.
+            accountDeleted = true
+        } catch let error as APIError {
+            deleteErrorMessage = error.errorDescription
+        } catch {
+            deleteErrorMessage = "Une erreur est survenue"
+        }
+        isDeleting = false
     }
 
     func load() async {

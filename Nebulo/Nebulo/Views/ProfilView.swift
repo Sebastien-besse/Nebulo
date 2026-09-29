@@ -13,6 +13,8 @@ struct ProfilView: View {
     /// La fiche d'une planète se présente par-dessus le profil plutôt que
     /// de s'y empiler : on en revient, on n'y progresse pas.
     @State private var selectedPlanet: Planet?
+    /// La suppression du compte est irréversible : elle passe par une alerte.
+    @State private var isConfirmingDeletion = false
 
     /// Le ViewModel est injecté, sans valeur par défaut : celle-ci serait
     /// évaluée hors de l'acteur principal. Les appelants le construisent donc
@@ -39,7 +41,10 @@ struct ProfilView: View {
                     identity
                     grades
                     planets
-                    logoutButton
+                    VStack(spacing: 14) {
+                        logoutButton
+                        deleteAccountButton
+                    }
                 }
                 .padding(.bottom, 24)
             }
@@ -78,6 +83,18 @@ struct ProfilView: View {
         // d'afficher une erreur que l'utilisateur ne peut pas résoudre.
         .onChange(of: viewModel.sessionExpired) { _, expired in
             if expired { authViewModel.logout() }
+        }
+        // Le compte n'existe plus : son jeton ne vaut plus rien.
+        .onChange(of: viewModel.accountDeleted) { _, deleted in
+            if deleted { authViewModel.logout() }
+        }
+        .alert("Supprimer ton compte ?", isPresented: $isConfirmingDeletion) {
+            Button("Annuler", role: .cancel) {}
+            Button("Supprimer", role: .destructive) {
+                Task { await viewModel.deleteAccount() }
+            }
+        } message: {
+            Text("Tes actions, dividendes, planètes et messages du forum seront effacés. Cette action est définitive.")
         }
         // La planète est déjà en mémoire : l'écran de détail ne lit rien au
         // serveur, il n'y a donc rien à recharger.
@@ -241,6 +258,35 @@ struct ProfilView: View {
             }
             Spacer()
         }
+    }
+
+    // MARK: Suppression du compte
+
+    /// Volontairement discret : un lien texte sous la déconnexion, pas un
+    /// second gros bouton qui lui ferait concurrence.
+    private var deleteAccountButton: some View {
+        VStack(spacing: 8) {
+            if viewModel.isDeleting {
+                ProgressView()
+                    .tint(.beigeClear)
+            } else {
+                Button("Supprimer son compte") {
+                    isConfirmingDeletion = true
+                }
+                .font(.system(size: 14))
+                .underline()
+                .foregroundStyle(.beige.opacity(0.6))
+            }
+
+            if let error = viewModel.deleteErrorMessage {
+                Text(error)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
     }
 }
 
