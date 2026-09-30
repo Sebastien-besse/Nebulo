@@ -14,7 +14,8 @@ enum GradeMapper {
             current: dto.current.map { Badge(image: $0.image, name: $0.name) },
             next: dto.next.map { Badge(image: $0.image, name: $0.name) },
             progressPercent: dto.progressPercent,
-            nextThreshold: dto.next?.xpThreshold
+            nextThreshold: dto.next?.xpThreshold,
+            currentThreshold: dto.current?.xpThreshold ?? 0
         )
     }
 }

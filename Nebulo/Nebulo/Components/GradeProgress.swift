@@ -95,12 +95,14 @@ struct GradeProgress: View {
         .frame(height: 9)
     }
 
-    /// Au sommet il n'y a plus de palier à viser : on montre l'XP seule.
+    /// L'XP du grade en cours sur ce que coûte le suivant : « 485 / 1400 XP ».
+    /// Le compteur repart de zéro à chaque promotion, comme la barre. Au
+    /// sommet il n'y a plus de palier à viser : on montre l'XP seule.
     private var caption: String {
-        guard let threshold = grade.nextThreshold else {
+        guard let cost = grade.xpForNextGrade else {
             return "\(grade.xp) XP"
         }
-        return "\(grade.xp) / \(threshold) XP"
+        return "\(grade.xpInGrade) / \(cost) XP"
     }
 }
 
@@ -110,7 +112,7 @@ struct GradeProgress: View {
             GradeProgress(grade: fakeUserGrade)
             // Au sommet : plus de palier, la barre reste pleine.
             GradeProgress(grade: UserGrade(
-                xp: 2150,
+                xp: 18000,
                 current: GradeCatalog.all.last,
                 next: nil,
                 progressPercent: 100,

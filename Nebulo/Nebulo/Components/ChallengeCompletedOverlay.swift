@@ -100,7 +100,7 @@ struct ChallengeCompletedOverlay: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(
             "Challenge validé. \(challenge.description). "
-            + "Plus \(challenge.energyReward) points d'énergie. \(encouragement)"
+            + "Plus \(challenge.xpReward) points d'expérience et \(challenge.energyReward) points d'énergie. \(encouragement)"
         )
     }
 
@@ -168,15 +168,26 @@ struct ChallengeCompletedOverlay: View {
             }
     }
 
-    /// L'énergie créditée. C'est la monnaie qui rapproche de la planète
-    /// suivante : elle mérite d'être lue, pas devinée d'un total qui a bougé.
+    /// Ce que le challenge rapporte : surtout de l'XP, qui fait monter en
+    /// grade, et un appoint d'énergie vers la planète suivante. Les deux
+    /// méritent d'être lus, pas devinés d'un total qui a bougé.
     private var reward: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "bolt.fill")
-                .font(.system(size: 20, weight: .bold))
-            Text("+\(challenge.energyReward) points d’énergie")
-                .font(.system(size: 20))
-                .fontWeight(.black)
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 20, weight: .bold))
+                Text("+\(challenge.xpReward) XP")
+                    .font(.system(size: 20))
+                    .fontWeight(.black)
+            }
+            HStack(spacing: 6) {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 15, weight: .bold))
+                Text("+\(challenge.energyReward) points d’énergie")
+                    .font(.system(size: 15))
+                    .fontWeight(.black)
+            }
+            .opacity(0.8)
         }
         .foregroundStyle(.yellowCustom)
         .scaleEffect(rewardShown ? 1 : 0.6)

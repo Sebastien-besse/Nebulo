@@ -59,15 +59,26 @@ struct UserGrade {
     let next: Badge?
     /// Avancement vers le grade suivant, de 0 à 100. Vaut 100 au sommet.
     let progressPercent: Double
-    /// Palier du grade suivant, pour afficher « 105 / 250 ».
+    /// Palier du grade suivant, en XP cumulée.
     let nextThreshold: Int?
+    /// Palier du grade acquis, en XP cumulée. Zéro pour le premier grade.
+    var currentThreshold: Int = 0
+
+    /// L'XP gagnée depuis le grade acquis : le compteur repart de zéro à
+    /// chaque promotion, même si le serveur stocke le cumul.
+    var xpInGrade: Int { max(0, xp - currentThreshold) }
+
+    /// Ce que coûte le grade suivant, compté depuis le grade acquis. Nil au
+    /// sommet.
+    var xpForNextGrade: Int? { nextThreshold.map { $0 - currentThreshold } }
 }
 
 /// Progression d'exemple pour les previews.
 let fakeUserGrade = UserGrade(
-    xp: 105,
+    xp: 1485,
     current: GradeCatalog.all[1],
     next: GradeCatalog.all[2],
-    progressPercent: 3.3,
-    nextThreshold: 250
+    progressPercent: 34.6,
+    nextThreshold: 2400,
+    currentThreshold: 1000
 )

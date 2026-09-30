@@ -24,6 +24,8 @@ struct ChallengeResponseDTO: Decodable {
     let type: ChallengeType
     let objectif: Int
     let energyReward: Int
+    /// Facultatif au décodage : un serveur antérieur ne l'envoie pas.
+    let xpReward: Int?
 }
 
 /// Ce que renvoie `GET /challenges/current` : la fiche, plus l'avancement du

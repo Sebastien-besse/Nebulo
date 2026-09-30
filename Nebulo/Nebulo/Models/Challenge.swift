@@ -38,6 +38,8 @@ struct Challenge: Equatable {
     let type: ChallengeType
     let objectif: Int
     let energyReward: Int
+    /// XP rapportée à la validation, selon la difficulté.
+    var xpReward: Int = 0
     let assignedAt: Date
     /// Valeur atteinte depuis le tirage, dans l'unité du type.
     let progress: Double
@@ -83,7 +85,8 @@ let fakeChallenge = Challenge(
     description: "Augmente de 2€ tes dividendes",
     type: .dividendTotal,
     objectif: 2,
-    energyReward: 300,
+    energyReward: 8,
+    xpReward: 80,
     assignedAt: .now,
     progress: 1.2,
     progressPercent: 60,
