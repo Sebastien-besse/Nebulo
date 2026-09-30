@@ -100,6 +100,16 @@ final class HomeViewModel: ObservableObject {
             .max { $0.energyThreshold < $1.energyThreshold }
     }
 
+    /// Vrai quand la jauge a de quoi mesurer : le référentiel des planètes est
+    /// arrivé.
+    var hasEnergyGauge: Bool { !planets.isEmpty }
+
+    /// Le chiffre du cadre de la fusée. Un tiret tant que rien n'est chargé :
+    /// « 0 % » affirmerait un réservoir vide qu'on ne connaît pas.
+    var energyPercentLabel: String {
+        hasEnergyGauge ? "\(Int(energyProgress * 100)) %" : "– %"
+    }
+
     /// La planète la plus proche encore hors de portée : la prochaine étape.
     var nextPlanet: Planet? {
         planets
@@ -110,10 +120,15 @@ final class HomeViewModel: ObservableObject {
     /// Avancée vers la prochaine planète, de 0 à 1. C'est ce que remplit le
     /// vaisseau de l'accueil.
     ///
-    /// La mesure part du seuil déjà franchi, pas de zéro : entre Jupiter (778)
-    /// et Saturne (1427), 800 points valent 3 % du trajet, pas 56 %. Rapporter
-    /// l'énergie au seuil absolu ferait une jauge qui n'avance plus.
+    /// La mesure part du seuil déjà franchi, pas de zéro : entre Jupiter (1100)
+    /// et Saturne (1700), 1200 points valent 17 % du trajet, pas 71 %.
+    /// Rapporter l'énergie au seuil absolu ferait une jauge qui n'avance plus.
+    ///
+    /// Sans planètes — chargement en cours ou échoué — il n'y a pas de trajet
+    /// à mesurer : la jauge reste vide. Elle affichait 100 %, faute de planète
+    /// suivante, comme au bout du voyage.
     var energyProgress: Double {
+        guard hasEnergyGauge else { return 0 }
         guard let next = nextPlanet else { return 1 }
         let reached = currentPlanet?.energyThreshold ?? 0
         let span = Double(next.energyThreshold - reached)

@@ -72,6 +72,11 @@ struct HomeView: View {
     /// se détachent sur le ciel ; plus court, elles mordraient sur le vert.
     private static let arcRadius: CGFloat = 150
 
+    /// Hausse de l'arc ouvert au-dessus du hublot. La pastille de gauche
+    /// frôlait le cadre du pourcentage, accroché au nez de la fusée ; le
+    /// hublot, lui, ne bouge pas, il doit rester dans le trou de la coque.
+    private static let arcLift: CGFloat = 20
+
     /// Les trois angles de l'arc, en degrés, lus dans le sens horaire depuis
     /// la droite. Le sommet au milieu, les deux autres à 50° de part et
     /// d'autre.
@@ -260,7 +265,7 @@ struct HomeView: View {
     ) -> some View {
         let radians = Self.arcAngles[index] * .pi / 180
         let x = isNavOpen ? Self.arcRadius * cos(radians) : 0
-        let y = isNavOpen ? -Self.arcRadius * sin(radians) : 0
+        let y = isNavOpen ? -Self.arcRadius * sin(radians) - Self.arcLift : 0
 
         return ButtonNav(
             btnNav: {
@@ -357,7 +362,7 @@ struct HomeView: View {
             // la carte du total il y pesait, alors que l'arc laisse près de
             // deux cents points libres sous lui.
             challenge
-                .padding(.top, 90)
+                .padding(.top, 70)
             Spacer(minLength: 0)
         }
         .task {
@@ -579,25 +584,36 @@ struct HomeView: View {
     /// Le vaisseau fait jauge : il se remplit de vert à mesure qu'on approche
     /// de la planète suivante.
     ///
-    /// Les trois assets sont la même silhouette — `Starship` toute blanche,
-    /// `StarshipEnergy` toute verte, `Starship50` à moitié. Plutôt que de
-    /// choisir entre trois paliers, la verte est superposée à la blanche et
-    /// masquée par le bas : le remplissage devient continu.
+    /// Les deux assets sont la même silhouette — `rocket_percentage` toute
+    /// blanche, `rocket_percentage_100` toute verte. La verte est superposée
+    /// à la blanche et masquée par le bas : le remplissage est continu.
+    ///
+    /// Le remplissage seul ne disait pas où on en était : un cadre, accroché
+    /// au nez de la fusée, porte le pourcentage en clair.
     private var energyGauge: some View {
         ZStack {
-            Image("Starship")
+            Image("rocket_percentage")
                 .resizable()
-                .scaledToFill()
-                .frame(width: 420.96, height: 420.96)
+                .frame(width: Self.gaugeSize.width, height: Self.gaugeSize.height)
 
-            Image("StarshipEnergy")
+            Image("rocket_percentage_100")
                 .resizable()
-                .scaledToFill()
-                .frame(width: 420.96, height: 420.96)
+                .frame(width: Self.gaugeSize.width, height: Self.gaugeSize.height)
                 .mask(alignment: .bottom) {
                     Rectangle()
-                        .frame(height: 420.96 * viewModel.energyProgress)
+                        .frame(height: Self.gaugeSize.height * gaugeFillFraction)
                 }
+
+            Text(viewModel.energyPercentLabel)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .contentTransition(.numericText(value: viewModel.energyProgress))
+                .frame(width: Self.gaugeLabelSize.width, height: Self.gaugeLabelSize.height)
+                .offset(Self.gaugeLabelOffset)
+                .accessibilityHidden(true)
         }
         // Le niveau monte sous les yeux au retour d'une saisie, au lieu de
         // sauter d'un cran.
@@ -606,8 +622,35 @@ struct HomeView: View {
             value: viewModel.energyProgress
         )
         .accessibilityLabel(
-            "Vaisseau chargé à \(Int(viewModel.energyProgress * 100)) pour cent vers la prochaine planète."
+            viewModel.hasEnergyGauge
+            ? "Vaisseau chargé à \(Int(viewModel.energyProgress * 100)) pour cent vers la prochaine planète."
+            : "Charge du vaisseau indisponible."
         )
+    }
+
+    /// Le cadre de la jauge, aux proportions de l'asset (1206 × 1263 px).
+    /// L'échelle est celle qui rend la fusée exactement aussi grande, et au
+    /// même endroit, que l'ancien vaisseau de 420,96 points : la fusée du
+    /// décollage, qui prend sa place, ne saute donc pas au changement.
+    private static let gaugeSize = CGSize(width: 402.07, height: 421.07)
+
+    /// Le cadre du pourcentage, en haut à gauche de l'asset : l'intérieur de
+    /// son contour (x 207–336, y 165–249 px), ramené en points et repéré
+    /// depuis le centre de la jauge.
+    private static let gaugeLabelSize = CGSize(width: 43, height: 28)
+    private static let gaugeLabelOffset = CGSize(width: -110.5, height: -141.5)
+
+    /// La hauteur du masque vert, en part du cadre.
+    ///
+    /// La fusée n'occupe pas tout son asset : elle va de 2,3 % à 76,6 % de sa
+    /// hauteur, le reste est transparent. Masquer le cadre au prorata de
+    /// l'énergie laissait la fusée blanche jusqu'à 23 %, et pleine dès 97 %
+    /// — un chiffre affiché à côté l'aurait démenti. La mesure est donc
+    /// rapportée à la seule silhouette.
+    private var gaugeFillFraction: Double {
+        let rocketBottom = 1 - 967.0 / 1263
+        let rocketHeight = (967.0 - 29) / 1263
+        return rocketBottom + rocketHeight * viewModel.energyProgress
     }
 
     /// La fusée du décollage. Elle ne paraît qu'au franchissement d'un seuil,
