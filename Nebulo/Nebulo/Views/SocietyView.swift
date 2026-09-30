@@ -11,12 +11,10 @@ import CardCarousel
 struct SocietyView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var viewModel: SocietyViewModel
-    /// Le message dont on déroule le fil. Nil tant qu'aucun n'est ouvert.
+    /// Le commentaire dont on déroule les réponses. Nil tant qu'aucun n'est
+    /// ouvert.
     @State private var openedPost: Post?
-    /// La feuille d'écriture est ouverte. Un commentaire sur l'entreprise est
-    /// un message du forum, mais l'écran de rédaction complet — titre,
-    /// carrousel des entreprises — demanderait de rechoisir celle qu'on a sous
-    /// les yeux.
+    /// La feuille d'écriture d'un commentaire est ouverte.
     @State private var isWritingComment = false
 
     /// Le ViewModel est injecté, sans valeur par défaut : celle-ci serait
@@ -31,9 +29,10 @@ struct SocietyView: View {
             Color.accentColor.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Écart assumé : la maquette ne pose aucun bouton ici, mais
-                // rien ne permettait alors d'écrire sur une entreprise depuis
-                // sa fiche.
+                // Écart assumé : la maquette ne pose aucun bouton ici. Le +
+                // commente le post ouvert, et le commentaire rejoint le
+                // carrousel. Il ne crée jamais de post : c'est le rôle du +
+                // du forum.
                 HeaderBar(title: "Société", trailingIcon: "IconePlus") {
                     isWritingComment = true
                 }
@@ -41,11 +40,11 @@ struct SocietyView: View {
             }
         }
         // La feuille monte par-dessus l'écran plutôt que d'être un écran de
-        // plus : on écrit sur l'entreprise qu'on a sous les yeux, et la quitter
-        // pour deux phrases ferait perdre le fil qu'on vient de lire.
+        // plus : on commente le post qu'on a sous les yeux, et le quitter
+        // pour deux phrases ferait perdre ce qu'on vient de lire.
         .sheet(isPresented: $isWritingComment, onDismiss: { viewModel.publishError = nil }) {
             WriteCommentSheet(
-                companyName: viewModel.company?.name ?? "",
+                subtitle: "Post de \(viewModel.post.authorDisplayName)",
                 draft: $viewModel.commentDraft,
                 errorMessage: viewModel.publishError,
                 isSending: viewModel.isPublishing,
@@ -169,10 +168,10 @@ struct SocietyView: View {
 
     @ViewBuilder
     private var comments: some View {
-        if viewModel.posts.isEmpty {
+        if viewModel.comments.isEmpty {
             Text(viewModel.hasLoaded
-                 ? "Aucun message sur cette entreprise. Ouvre la discussion."
-                 : "Fil indisponible pour le moment.")
+                 ? "Aucun commentaire sur ce post. Ajoute le premier avec le +."
+                 : "Commentaires indisponibles pour le moment.")
                 .font(.system(size: 16))
                 .foregroundStyle(.beige.opacity(0.7))
                 .padding(.top, 29)
@@ -180,17 +179,17 @@ struct SocietyView: View {
             // Le carrousel décale ses voisines mais ne les estompe pas : la
             // maquette les pose à 24 %, c'est donc la carte qui s'en charge.
             Carousel(
-                viewModel.posts,
+                viewModel.comments,
                 index: $viewModel.activeIndex,
                 sidesScaling: 1
-            ) { post in
-                CardCarouselPost(post: post)
-                    .opacity(viewModel.isActive(post) ? 1 : 0.24)
-                    // Seule la carte du centre ouvre son fil : sur les
+            ) { comment in
+                CardCarouselPost(post: comment)
+                    .opacity(viewModel.isActive(comment) ? 1 : 0.24)
+                    // Seule la carte du centre ouvre ses réponses : sur les
                     // voisines, le toucher appartient au carrousel, qui s'en
                     // sert pour les amener au centre.
                     .onTapGesture {
-                        if viewModel.isActive(post) { openedPost = post }
+                        if viewModel.isActive(comment) { openedPost = comment }
                     }
             }
             .frame(height: 360)
@@ -200,9 +199,9 @@ struct SocietyView: View {
 }
 
 #Preview {
-    let viewModel = SocietyViewModel(companyId: fakeCompany.id)
+    let viewModel = SocietyViewModel(post: fakePosts[0])
     viewModel.company = fakeCompany
-    viewModel.posts = Array(fakePosts.prefix(3))
+    viewModel.comments = Array(fakePosts.dropFirst().prefix(3))
     viewModel.hasLoaded = true
     viewModel.hasAttemptedLoad = true
 

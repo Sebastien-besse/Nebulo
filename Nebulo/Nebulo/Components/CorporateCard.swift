@@ -7,9 +7,10 @@
 
 import SwiftUI
 
-/// Une ligne du forum : l'entreprise dont parle le message, sa date, et les
-/// deux votes chaud et froid. Sur ses propres messages, une corbeille remplace
-/// les votes, qui s'éteignent.
+/// Une ligne du forum : l'entreprise dont parle le message, sa date, son
+/// auteur et les deux votes chaud et froid. Sur ses propres messages, une
+/// corbeille prend la place de l'auteur — on sait qu'on l'a écrit — et les
+/// votes s'éteignent.
 struct CorporateCard: View {
     let post: Post
     /// Faux sur ses propres messages : l'API refuse qu'on s'auto-vote.
@@ -19,18 +20,22 @@ struct CorporateCard: View {
     var canDelete: Bool = false
     var onVote: (VoteType) -> Void = { _ in }
     var onDelete: () -> Void = {}
-    /// Toucher la carte ouvre l'entreprise. Inerte sur un message qui n'en
-    /// vise aucune : il n'y a alors rien à ouvrir.
+    /// Toucher la carte ouvre la fiche de l'entreprise, centrée sur ce post.
     var onOpen: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 30) {
             HStack(alignment: .bottom) {
-                // La maquette laisse cette moitié de ligne vide. La corbeille
-                // s'y installe plutôt que près de la pastille de vote, dont
-                // elle deviendrait le troisième bouton.
+                // La maquette laisse cette moitié de ligne vide. L'auteur s'y
+                // installe : sans lui, deux messages sur la même entreprise
+                // avaient la même carte, et passaient pour un doublon. Sur ses
+                // propres messages, la corbeille le remplace — plutôt que de
+                // se poser près de la pastille de vote, dont elle deviendrait
+                // le troisième bouton.
                 if canDelete {
                     deleteButton
+                } else {
+                    authorLabel
                 }
                 Spacer()
                 dateBadge
@@ -71,6 +76,21 @@ struct CorporateCard: View {
                 .contentShape(Rectangle())
         }
         .accessibilityLabel("Supprimer mon message")
+    }
+
+    /// « Tipsy D. » : le prénom et l'initiale du nom, assez pour distinguer
+    /// les auteurs sans les identifier.
+    private var authorLabel: some View {
+        Text(post.authorDisplayName)
+            .font(.system(size: 15))
+            .fontWeight(.black)
+            .foregroundStyle(.beigeClear.opacity(0.85))
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(maxWidth: 200, alignment: .leading)
+            .frame(minHeight: 30)
+            .padding(.leading, 8)
+            .accessibilityLabel("Par \(post.authorDisplayName)")
     }
 
     /// La pastille épouse sa date au lieu de l'inverse.

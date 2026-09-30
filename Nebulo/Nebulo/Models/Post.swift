@@ -29,13 +29,23 @@ struct Post: Identifiable, Equatable, Hashable {
 
     let authorId: UUID
     let authorFirstname: String
+    /// L'initiale du nom, point compris (« D. »). Le serveur n'envoie pas le
+    /// nom entier : le forum est public.
+    var authorLastInitial: String = ""
     /// Âge en années, calculé côté serveur depuis la date de naissance.
     let authorAge: Int
+
+    /// « Tipsy D. » : de quoi distinguer les auteurs sans les identifier.
+    var authorDisplayName: String {
+        authorLastInitial.isEmpty ? authorFirstname : "\(authorFirstname) \(authorLastInitial)"
+    }
 
     let companyId: UUID?
     /// Absent quand le post ne vise aucune entreprise, ou que celle-ci a été
     /// supprimée — la clé étrangère est en SET NULL.
     let companyName: String?
+    /// Le post commenté, sur un commentaire. Nil sur un post du forum.
+    var parentPostId: UUID? = nil
 
     let hotCount: Int
     let coldCount: Int

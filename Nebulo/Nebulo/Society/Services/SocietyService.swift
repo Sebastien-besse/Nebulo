@@ -8,38 +8,33 @@
 import Foundation
 
 protocol SocietyServiceProtocol {
-    func loadSociety(companyId: UUID, token: String) async throws -> (company: Company, posts: [Post])
-    /// Publie un commentaire sur l'entreprise. C'est un message du forum comme
-    /// un autre — la fiche société n'est qu'une autre entrée sur le même fil —,
-    /// d'où la délégation au service du forum plutôt qu'un second chemin vers
-    /// le même endpoint.
-    func createComment(content: String, companyId: UUID, token: String) async throws -> Post
+    /// La fiche de l'entreprise et les commentaires du post ouvert.
+    func loadSociety(companyId: UUID, postId: UUID, token: String) async throws -> (company: Company, comments: [Post])
+    /// Commente le post : une nouvelle carte du carrousel, jamais une réponse
+    /// sous un commentaire ni un nouveau post du forum.
+    func createComment(content: String, postId: UUID, token: String) async throws -> Post
 }
 
 final class SocietyService: SocietyServiceProtocol {
     private let repository: SocietyRepositoryProtocol
-    private let forum: ForumServiceProtocol
 
-    init(
-        repository: SocietyRepositoryProtocol = SocietyRepository(),
-        forum: ForumServiceProtocol = ForumService()
-    ) {
+    init(repository: SocietyRepositoryProtocol = SocietyRepository()) {
         self.repository = repository
-        self.forum = forum
     }
 
-    func loadSociety(companyId: UUID, token: String) async throws -> (company: Company, posts: [Post]) {
-        // La fiche et son fil sont indépendants : les lancer en parallèle évite
-        // d'additionner deux allers-retours à l'ouverture de l'écran.
+    func loadSociety(companyId: UUID, postId: UUID, token: String) async throws -> (company: Company, comments: [Post]) {
+        // La fiche et les commentaires sont indépendants : les lancer en
+        // parallèle évite d'additionner deux allers-retours à l'ouverture.
         async let companyDTO = repository.company(id: companyId, token: token)
-        async let postDTOs = repository.posts(companyId: companyId, token: token)
+        async let commentDTOs = repository.comments(postId: postId, token: token)
 
         let company = CompanyMapper.toDomain(try await companyDTO)
-        let posts = try await postDTOs.map(PostMapper.toDomain)
-        return (company, posts)
+        let comments = try await commentDTOs.map(PostMapper.toDomain)
+        return (company, comments)
     }
 
-    func createComment(content: String, companyId: UUID, token: String) async throws -> Post {
-        try await forum.createPost(content: content, companyId: companyId, token: token)
+    func createComment(content: String, postId: UUID, token: String) async throws -> Post {
+        let dto = CreateResponseRequestDTO(content: content)
+        return PostMapper.toDomain(try await repository.createComment(dto, postId: postId, token: token))
     }
 }

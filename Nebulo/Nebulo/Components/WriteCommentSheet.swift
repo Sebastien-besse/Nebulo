@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-/// Feuille d'écriture d'un commentaire sur une entreprise.
+/// Feuille d'écriture d'un commentaire sous un post, depuis la fiche de son
+/// entreprise. Elle ne crée jamais de post : ceux-là naissent dans le forum.
 ///
 /// Une feuille plutôt qu'un modal centré : on écrit ici, on ne confirme pas.
 /// Elle monte du bas, sous le pouce, et laisse voir la fiche derrière son
@@ -17,9 +18,9 @@ import SwiftUI
 /// commentaire tient sur plusieurs lignes, et une ligne unique qui défile
 /// horizontalement empêche de se relire avant de publier.
 struct WriteCommentSheet: View {
-    /// Le nom de l'entreprise commentée, rappelé sous le titre : la feuille
+    /// Le post commenté (« Post de Tipsy D. »), rappelé sous le titre : la feuille
     /// couvre la fiche, on ne voit plus de quoi on parle.
-    let companyName: String
+    let subtitle: String
     @Binding var draft: String
     var errorMessage: String? = nil
     /// Vrai pendant l'envoi : les deux boutons s'éteignent, pour qu'un double
@@ -87,7 +88,7 @@ struct WriteCommentSheet: View {
                 .foregroundStyle(.yellowCustom)
                 .multilineTextAlignment(.center)
 
-            Text(companyName)
+            Text(subtitle)
                 .font(.system(size: 15))
                 .fontWeight(.medium)
                 .foregroundStyle(.beigeClear.opacity(0.85))
@@ -170,7 +171,7 @@ struct WriteCommentSheet: View {
     Color.accentColor
         .sheet(isPresented: .constant(true)) {
             WriteCommentSheet(
-                companyName: "TotalEnergies",
+                subtitle: "Post de Tipsy D.",
                 draft: .constant(""),
                 onCancel: {},
                 onPublish: {}

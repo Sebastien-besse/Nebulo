@@ -9,7 +9,8 @@ import SwiftUI
 
 /// Les destinations accessibles depuis le forum.
 enum ForumRoute: Hashable {
-    case society(companyId: UUID)
+    /// La page d'un post : la fiche de son entreprise et ses commentaires.
+    case society(Post)
     /// Le fil de réponses d'un message. Le post est transporté entier :
     /// l'écran l'affiche en tête, et le recharger ne dirait rien de neuf.
     case thread(Post)
@@ -48,7 +49,7 @@ struct ForumView: View {
             if let pending = viewModel.pendingDeletion {
                 ConfirmDialog(
                     title: "Supprimer le message ?",
-                    message: "Il disparaîtra du forum avec toutes ses réponses. C'est définitif.",
+                    message: "Il disparaîtra du forum avec tous ses commentaires. C'est définitif.",
                     isWorking: viewModel.isDeleting,
                     onCancel: { viewModel.pendingDeletion = nil },
                     onConfirm: { Task { await viewModel.confirmDeletion() } }
@@ -85,8 +86,8 @@ struct ForumView: View {
         }
         .navigationDestination(item: $route) { destination in
             switch destination {
-            case .society(let companyId):
-                SocietyView(viewModel: SocietyViewModel(companyId: companyId))
+            case .society(let post):
+                SocietyView(viewModel: SocietyViewModel(post: post))
             case .thread(let post):
                 // Le fil se recharge avant de réapparaître : le message
                 // supprimé y figure encore.
@@ -140,13 +141,13 @@ struct ForumView: View {
                                     Task { await viewModel.vote(value, on: post) }
                                 },
                                 onDelete: { viewModel.pendingDeletion = post },
-                                // La fiche société n'existe pas pour un
-                                // message sans entreprise : son toucher
-                                // déroule alors son fil, qui serait sinon
-                                // hors d'atteinte.
+                                // La carte ouvre la page du post : la fiche
+                                // de l'entreprise et ses commentaires, que
+                                // son + complète. Sans entreprise, il n'y a
+                                // pas de fiche, et c'est le fil qui s'ouvre.
                                 onOpen: {
-                                    if let id = post.companyId {
-                                        route = .society(companyId: id)
+                                    if post.companyId != nil {
+                                        route = .society(post)
                                     } else {
                                         route = .thread(post)
                                     }

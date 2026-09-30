@@ -16,10 +16,14 @@ struct PostResponseDTO: Decodable {
 
     let authorId: UUID
     let authorFirstname: String
+    /// Facultatif au décodage : un serveur antérieur ne l'envoie pas.
+    let authorLastInitial: String?
     let authorAge: Int
 
     let companyId: UUID?
     let companyName: String?
+    /// Le post commenté, sur un commentaire. Nil sur un post du forum.
+    let parentPostId: UUID?
 
     let hotCount: Int
     let coldCount: Int

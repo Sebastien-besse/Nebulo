@@ -8,28 +8,32 @@
 import Foundation
 import Combine
 
+/// La page d'un post du forum : la fiche de son entreprise, et ses
+/// commentaires en carrousel. Chaque commentaire a ses propres réponses, dans
+/// son fil.
 @MainActor
 final class SocietyViewModel: ObservableObject {
-    let companyId: UUID
+    /// Le post touché dans le forum. C'est lui que le + commente.
+    let post: Post
 
     @Published var company: Company? = nil
-    /// Le fil de l'entreprise, chronologique côté serveur.
-    @Published var posts: [Post] = []
+    /// Les commentaires du post, chronologiques côté serveur.
+    @Published var comments: [Post] = []
     /// Carte au centre du carrousel. Les voisines s'estompent, comme dans la
     /// maquette où elles ne sont qu'à 24 %.
     @Published var activeIndex: Int = 0
-    /// Le commentaire en cours d'écriture, dans le modal.
+    /// Le commentaire en cours d'écriture, dans la feuille.
     @Published var commentDraft: String = ""
-    /// Vrai pendant la publication : le modal éteint ses boutons.
+    /// Vrai pendant la publication : la feuille éteint ses boutons.
     @Published var isPublishing: Bool = false
     /// L'erreur de publication, distincte de celle du chargement : elle se lit
-    /// dans le modal, à côté du bouton qui l'a déclenchée.
+    /// dans la feuille, à côté du bouton qui l'a déclenchée.
     @Published var publishError: String? = nil
 
     @Published var isLoading: Bool = false
     @Published var errorMessage: String? = nil
     /// Vrai une fois que le serveur a répondu. Sert à distinguer « aucun
-    /// message » d'un chargement qui a échoué : les deux laissent la liste
+    /// commentaire » d'un chargement qui a échoué : les deux laissent la liste
     /// vide, mais ne se disent pas de la même façon.
     @Published var hasLoaded: Bool = false
     /// Vrai dès qu'un chargement a été tenté, abouti ou non. Les previews le
@@ -44,20 +48,23 @@ final class SocietyViewModel: ObservableObject {
 
     // La valeur par défaut est construite dans le corps : évaluée comme
     // argument par défaut, elle le serait hors de l'acteur principal.
-    init(companyId: UUID, service: SocietyServiceProtocol? = nil) {
-        self.companyId = companyId
+    init(post: Post, service: SocietyServiceProtocol? = nil) {
+        self.post = post
         self.service = service ?? SocietyService()
     }
 
     /// Vrai pour la carte au centre. Le carrousel n'estompe pas ses voisines
     /// lui-même : il ne fait que les décaler.
-    func isActive(_ post: Post) -> Bool {
-        guard posts.indices.contains(activeIndex) else { return false }
-        return posts[activeIndex].id == post.id
+    func isActive(_ comment: Post) -> Bool {
+        guard comments.indices.contains(activeIndex) else { return false }
+        return comments[activeIndex].id == comment.id
     }
 
     func load() async {
         hasAttemptedLoad = true
+        // Un post sans entreprise n'a pas de fiche : le forum ouvre alors son
+        // fil, jamais cet écran.
+        guard let companyId = post.companyId else { return }
         guard let token = TokenStore.shared.token else {
             sessionExpired = true
             return
@@ -65,13 +72,17 @@ final class SocietyViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         do {
-            let (company, posts) = try await service.loadSociety(companyId: companyId, token: token)
+            let (company, comments) = try await service.loadSociety(
+                companyId: companyId,
+                postId: post.id,
+                token: token
+            )
             self.company = company
-            self.posts = posts
-            // Un rechargement peut rendre le fil plus court qu'avant — un
-            // message supprimé depuis son écran de réponses. L'index resterait
-            // alors sur une carte qui n'existe plus.
-            self.activeIndex = min(activeIndex, max(0, posts.count - 1))
+            self.comments = comments
+            // Un rechargement peut rendre la liste plus courte qu'avant — un
+            // commentaire supprimé depuis son fil. L'index resterait alors sur
+            // une carte qui n'existe plus.
+            self.activeIndex = min(activeIndex, max(0, comments.count - 1))
             self.hasLoaded = true
         } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
             sessionExpired = true
@@ -83,12 +94,12 @@ final class SocietyViewModel: ObservableObject {
         isLoading = false
     }
 
-    /// Publie le commentaire en cours sur l'entreprise affichée.
+    /// Publie le commentaire en cours sur le post : une nouvelle carte du
+    /// carrousel.
     ///
     /// Renvoie vrai quand le serveur a accepté, pour que l'écran sache
-    /// refermer le modal. Le fil est rechargé plutôt que complété sur place :
-    /// c'est le serveur qui décide de l'ordre des cartes, et deviner où glisser
-    /// la nouvelle reviendrait à réécrire ce tri ici.
+    /// refermer la feuille. La liste est rechargée puis centrée sur le
+    /// nouveau commentaire : on voit où il a atterri.
     @discardableResult
     func publishComment() async -> Bool {
         let content = commentDraft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -107,15 +118,18 @@ final class SocietyViewModel: ObservableObject {
         defer { isPublishing = false }
 
         do {
-            _ = try await service.createComment(
+            let created = try await service.createComment(
                 content: content,
-                companyId: companyId,
+                postId: post.id,
                 token: token
             )
             // Vidé seulement une fois le serveur d'accord : sur un échec, le
             // texte reste dans le champ plutôt que d'être perdu.
             commentDraft = ""
             await load()
+            if let index = comments.firstIndex(where: { $0.id == created.id }) {
+                activeIndex = index
+            }
             return true
         } catch APIError.httpError(let statusCode, _) where statusCode == 401 {
             sessionExpired = true
